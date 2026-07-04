@@ -1224,6 +1224,25 @@ h3 {
       white-space: nowrap;
     }
 
+    .session-logout {
+      min-height: 38px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      font-weight: 900;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .session-logout[hidden] {
+      display: none;
+    }
+
     .experience-link.primary {
       border-color: transparent;
       color: #fff;
@@ -1231,6 +1250,11 @@ h3 {
     }
 
     .mobile-menu-btn {
+      display: none;
+    }
+
+    .mobile-menu-close,
+    .mobile-menu-backdrop {
       display: none;
     }
 
@@ -1270,9 +1294,33 @@ h3 {
         transition: transform 180ms ease;
       }
 
-      .experience-nav.menu-open,
-      .experience-nav:focus-within {
+      .experience-nav.menu-open {
         transform: translateX(0);
+      }
+
+      .mobile-menu-close {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        margin-left: auto;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        background: var(--panel);
+        font-size: 1.4rem;
+        font-weight: 950;
+      }
+
+      .mobile-menu-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 38;
+        background: rgb(7 17 28 / 0.54);
+      }
+
+      .mobile-menu-backdrop.is-open {
+        display: block;
       }
 
       .experience-brand,
@@ -1286,6 +1334,10 @@ h3 {
       }
 
       .session-pill {
+        width: 100%;
+      }
+
+      .session-logout {
         width: 100%;
       }
     }
@@ -1629,7 +1681,9 @@ h3 {
   <body>
     <div class="app-shell">
       <button id="menuToggle" class="mobile-menu-btn" type="button" aria-controls="experienceNav" aria-expanded="false">☰</button>
+      <button id="menuBackdrop" class="mobile-menu-backdrop" type="button" aria-label="メニューを閉じる"></button>
       <nav id="experienceNav" class="experience-nav" aria-label="アプリ体験ナビゲーション">
+        <button id="menuClose" class="mobile-menu-close" type="button" aria-label="メニューを閉じる">×</button>
         <div class="experience-brand">
           <span class="experience-logo">K</span>
           <strong>Kaimono Clock</strong>
@@ -1644,6 +1698,7 @@ h3 {
         </label>
         <div class="experience-links">
           <span id="sessionPill" class="session-pill">未ログイン</span>
+          <button id="householdLogoutBtn" class="session-logout" type="button" hidden>ログアウト</button>
           <a class="experience-link" href="./index.html">体験トップ</a>
           <a class="experience-link" href="./app.html">買い時メモ</a>
           <a class="experience-link primary" href="./household.html" aria-current="page">家計簿体験</a>
@@ -1887,10 +1942,16 @@ const incomeCategories = [
   { id: "salary", label: "給与", color: "#22c55e" }
 ];
 
+const SUPABASE_URL = "https://wnxphjricowzxbkwnmjx.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndueHBoanJpY293enhia3dubWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDk5ODMsImV4cCI6MjA5NzQ4NTk4M30.p6lu6gNpdkTg0Nvnxj05m2tHbYeihYP7jFPdIEWfSxo";
+const HOUSEHOLD_RECORDS_TABLE = "nsp_household_records";
+const HOUSEHOLD_BUDGETS_TABLE = "nsp_household_budgets";
 const SESSION_KEY = "kaimono-clock-session-v2";
 const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
 const THEME_KEY = "kaimono-clock-theme";
 const sessionPill = document.querySelector("#sessionPill");
+const householdLogoutBtn = document.querySelector("#householdLogoutBtn");
 
 function setupThemeControls() {
   const theme = localStorage.getItem(THEME_KEY) || "cool";
@@ -1910,12 +1971,20 @@ function setupThemeControls() {
 function setupMobileMenu() {
   const nav = document.querySelector("#experienceNav");
   const toggle = document.querySelector("#menuToggle");
+  const close = document.querySelector("#menuClose");
+  const backdrop = document.querySelector("#menuBackdrop");
   if (!nav || !toggle) return;
   const setOpen = (open) => {
     nav.classList.toggle("menu-open", open);
     toggle.setAttribute("aria-expanded", String(open));
+    backdrop?.classList.toggle("is-open", open);
   };
   toggle.addEventListener("click", () => setOpen(!nav.classList.contains("menu-open")));
+  close?.addEventListener("click", () => {
+    setOpen(false);
+    toggle.focus();
+  });
+  backdrop?.addEventListener("click", () => setOpen(false));
   nav.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => setOpen(false));
   });
@@ -1997,7 +2066,7 @@ const els = {
 
 init();
 
-function init() {
+async function init() {
   renderSessionPill();
   els.category.innerHTML = categories
     .map((category) => `<option value="${category.id}">${category.label}</option>`)
@@ -2021,8 +2090,19 @@ function init() {
   els.tabs.forEach((tab) => {
     tab.addEventListener("click", () => setView(tab.dataset.view));
   });
+  householdLogoutBtn?.addEventListener("click", signOut);
 
   setView(state.activeView, false);
+  if (currentUserId()) {
+    try {
+      await migrateHouseholdLocalIfRemoteEmpty();
+      await loadHouseholdFromSupabase();
+    } catch {
+      if (sessionPill) {
+        sessionPill.textContent = `${sessionPill.textContent} / 家計簿同期未設定`;
+      }
+    }
+  }
   render();
   const entryDate = new URLSearchParams(location.search).get("entry");
   if (entryDate) openEntryModal(entryDate);
@@ -2032,9 +2112,12 @@ function renderSessionPill() {
   if (!sessionPill) return;
   try {
     const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
-    sessionPill.textContent = session?.user?.email ? `ログイン中: ${maskEmail(session.user.email)}` : "未ログイン";
+    const signedIn = Boolean(session?.user?.email);
+    sessionPill.textContent = signedIn ? `ログイン中: ${maskEmail(session.user.email)}` : "未ログイン";
+    if (householdLogoutBtn) householdLogoutBtn.hidden = !signedIn;
   } catch {
     sessionPill.textContent = "未ログイン";
+    if (householdLogoutBtn) householdLogoutBtn.hidden = true;
   }
 }
 
@@ -2052,6 +2135,92 @@ function currentUserId() {
   } catch {
     return "";
   }
+}
+
+function currentSession() {
+  try {
+    return JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session) {
+  if (session?.access_token) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } else {
+    localStorage.removeItem(SESSION_KEY);
+  }
+  renderSessionPill();
+}
+
+function shouldRefreshSession(session) {
+  if (!session?.access_token || !session?.refresh_token || !session?.expires_at) return false;
+  return Math.floor(Date.now() / 1000) >= Number(session.expires_at) - 60;
+}
+
+async function refreshSessionIfNeeded() {
+  const session = currentSession();
+  if (!session?.access_token) return null;
+  if (!shouldRefreshSession(session)) return session;
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ refresh_token: session.refresh_token })
+  });
+  if (!response.ok) {
+    saveSession(null);
+    throw new Error("Session refresh failed");
+  }
+  const nextSession = await response.json();
+  saveSession(nextSession);
+  return nextSession;
+}
+
+async function supabaseRequest(path, options = {}) {
+  const session = await refreshSessionIfNeeded();
+  if (!session?.access_token) throw new Error("Not signed in");
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  if (!response.ok) {
+    if (response.status === 401 && !options.__retriedAfterRefresh) {
+      saveSession(null);
+    }
+    const message = await response.text();
+    throw new Error(message || `Supabase request failed: ${response.status}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+async function signOut() {
+  const session = currentSession();
+  if (session?.access_token) {
+    await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`
+      }
+    }).catch(() => null);
+  }
+  saveSession(null);
+  state.expenses = [];
+  state.incomes = [];
+  state.discounts = [];
+  state.monthlyBudgets = {};
+  state.categoryBudgets = {};
+  render();
 }
 
 function loadDiscountCache() {
@@ -2091,6 +2260,109 @@ function saveCategoryBudgets() {
   localStorage.setItem("monthMateCategoryBudgets", JSON.stringify(state.categoryBudgets));
 }
 
+function recordToRow(item, type) {
+  return {
+    id: item.id,
+    user_id: currentUserId(),
+    record_type: type,
+    record_date: item.date,
+    category: item.category,
+    title: item.title,
+    amount: item.amount
+  };
+}
+
+function rowToRecord(row) {
+  return {
+    id: row.id,
+    date: row.record_date,
+    category: row.category,
+    title: row.title,
+    amount: Number(row.amount)
+  };
+}
+
+async function loadHouseholdFromSupabase() {
+  if (!currentUserId()) return;
+  const [records, budgets] = await Promise.all([
+    supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?select=*&order=record_date.desc`),
+    supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=*`)
+  ]);
+  state.expenses = (records || []).filter((row) => row.record_type === "expense").map(rowToRecord);
+  state.incomes = (records || []).filter((row) => row.record_type === "income").map(rowToRecord);
+  state.monthlyBudgets = {};
+  state.categoryBudgets = {};
+  (budgets || []).forEach((row) => {
+    state.monthlyBudgets[row.month_key] = Number(row.monthly_budget) || 0;
+    state.categoryBudgets[row.month_key] = row.category_budgets || {};
+  });
+  saveExpenses();
+  saveIncomes();
+  saveMonthlyBudgets();
+  saveCategoryBudgets();
+}
+
+async function migrateHouseholdLocalIfRemoteEmpty() {
+  if (!currentUserId()) return;
+  const remoteRecords = await supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?select=id&limit=1`);
+  const remoteBudgets = await supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=id&limit=1`);
+  const localRecords = [
+    ...state.expenses.map((item) => recordToRow(item, "expense")),
+    ...state.incomes.map((item) => recordToRow(item, "income"))
+  ];
+  if (!remoteRecords?.length && localRecords.length) {
+    await supabaseRequest(HOUSEHOLD_RECORDS_TABLE, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(localRecords)
+    });
+  }
+  const budgetRows = Object.keys({ ...state.monthlyBudgets, ...state.categoryBudgets }).map((key) => ({
+    user_id: currentUserId(),
+    month_key: key,
+    monthly_budget: Number(state.monthlyBudgets[key]) || 0,
+    category_budgets: state.categoryBudgets[key] || {}
+  }));
+  if (!remoteBudgets?.length && budgetRows.length) {
+    await supabaseRequest(HOUSEHOLD_BUDGETS_TABLE, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(budgetRows)
+    });
+  }
+}
+
+async function syncHouseholdRecord(item, type) {
+  if (!currentUserId()) return;
+  await supabaseRequest(HOUSEHOLD_RECORDS_TABLE, {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(recordToRow(item, type))
+  });
+}
+
+async function deleteHouseholdRecord(id) {
+  if (!currentUserId()) return;
+  await supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" }
+  });
+}
+
+async function syncBudgetForMonth(key) {
+  if (!currentUserId()) return;
+  await supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?on_conflict=user_id,month_key`, {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({
+      user_id: currentUserId(),
+      month_key: key,
+      monthly_budget: Number(state.monthlyBudgets[key]) || 0,
+      category_budgets: state.categoryBudgets[key] || {}
+    })
+  });
+}
+
 function currentBudget() {
   return budgetForMonth(state.viewDate.getFullYear(), state.viewDate.getMonth());
 }
@@ -2106,9 +2378,11 @@ function currentCategoryBudgets() {
 }
 
 function updateBudget() {
-  state.monthlyBudgets[monthKey(state.viewDate)] = Math.max(0, Number(els.budget.value) || 0);
+  const key = monthKey(state.viewDate);
+  state.monthlyBudgets[key] = Math.max(0, Number(els.budget.value) || 0);
   saveMonthlyBudgets();
-  localStorage.setItem("monthMateBudget", String(state.monthlyBudgets[monthKey(state.viewDate)]));
+  localStorage.setItem("monthMateBudget", String(state.monthlyBudgets[key]));
+  syncBudgetForMonth(key).catch(() => null);
   render();
 }
 
@@ -2121,6 +2395,7 @@ function updateCategoryBudget(categoryId, value) {
     budgets[categoryId] = amount;
   }
   saveCategoryBudgets();
+  syncBudgetForMonth(monthKey(state.viewDate)).catch(() => null);
   renderSummary();
   renderReports();
 }
@@ -2142,6 +2417,7 @@ function addExpense(event) {
   state.viewDate = dateFromInput(item.date);
   state.selectedDate = item.date;
   saveExpenses();
+  syncHouseholdRecord(item, "expense").catch(() => null);
   els.form.reset();
   els.date.value = item.date;
   render();
@@ -2165,6 +2441,7 @@ function addIncome(event) {
   state.viewDate = dateFromInput(item.date);
   state.selectedDate = item.date;
   saveIncomes();
+  syncHouseholdRecord(item, "income").catch(() => null);
   els.incomeForm.reset();
   els.incomeDate.value = item.date;
   render();
@@ -2174,12 +2451,14 @@ function addIncome(event) {
 function deleteExpense(id) {
   state.expenses = state.expenses.filter((expense) => expense.id !== id);
   saveExpenses();
+  deleteHouseholdRecord(id).catch(() => null);
   render();
 }
 
 function deleteIncome(id) {
   state.incomes = state.incomes.filter((income) => income.id !== id);
   saveIncomes();
+  deleteHouseholdRecord(id).catch(() => null);
   render();
 }
 
@@ -2583,14 +2862,29 @@ function incomesForDate(dateKey) {
 function discountsForDate(dateKey) {
   const date = dateFromInput(dateKey);
   return state.discounts.filter((discount) => {
+    const weekdays = normalizeCsvNumbers(discount.saleWeekdays || discount.saleWeekday, 0, 6);
+    const monthDays = normalizeCsvNumbers(discount.saleMonthDays || discount.saleMonthDay, 1, 31);
     if (discount.saleMode === "weekly") {
-      return Number(discount.saleWeekday) === date.getDay();
+      return weekdays.includes(date.getDay());
     }
     if (discount.saleMode === "monthly") {
-      return Number(discount.saleMonthDay) === date.getDate();
+      return monthDays.includes(date.getDate());
+    }
+    if (discount.saleMode === "range") {
+      const start = dateFromInput(discount.saleDate);
+      const end = dateFromInput(discount.saleEndDate);
+      return date >= start && date <= end;
     }
     return discount.saleDate === dateKey;
   });
+}
+
+function normalizeCsvNumbers(value, min, max) {
+  const values = String(value || "")
+    .split(/[,、\s]+/)
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isInteger(item) && item >= min && item <= max);
+  return [...new Set(values)].sort((a, b) => a - b);
 }
 
 function sum(items) {

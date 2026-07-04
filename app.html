@@ -363,6 +363,11 @@
         display: none;
       }
 
+      .mobile-menu-close,
+      .mobile-menu-backdrop {
+        display: none;
+      }
+
       .location-panel,
       .discount-overview {
         display: grid;
@@ -901,9 +906,33 @@
           transition: transform 180ms ease;
         }
 
-        .auth-panel.menu-open,
-        .auth-panel:focus-within {
+        .auth-panel.menu-open {
           transform: translateX(0);
+        }
+
+        .mobile-menu-close {
+          display: grid;
+          width: 42px;
+          height: 42px;
+          margin-left: auto;
+          place-items: center;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          color: var(--ink);
+          background: var(--surface);
+          font-size: 1.4rem;
+          font-weight: 950;
+        }
+
+        .mobile-menu-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 38;
+          background: rgb(7 17 28 / 0.54);
+        }
+
+        .mobile-menu-backdrop.is-open {
+          display: block;
         }
 
         .auth-panel.smart-hidden,
@@ -1536,13 +1565,29 @@
 
       @media (max-width: 980px) {
         .auth-panel {
-          grid-template-columns: minmax(170px, 1fr) minmax(130px, 170px);
+          grid-template-columns: minmax(190px, 1fr) minmax(130px, 170px);
+          align-items: stretch;
         }
 
         .auth-form,
         .auth-session,
         .experience-links {
           grid-column: 1 / -1;
+        }
+
+        .auth-form {
+          grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.8fr) max-content max-content;
+          align-items: stretch;
+        }
+
+        .auth-form button {
+          min-width: 96px;
+          white-space: nowrap;
+        }
+
+        .experience-links {
+          justify-content: flex-start;
+          flex-wrap: wrap;
         }
       }
 
@@ -1576,7 +1621,9 @@
   <body>
     <main class="app">
       <button id="menuToggle" class="mobile-menu-btn" type="button" aria-controls="authPanel" aria-expanded="false">☰</button>
+      <button id="menuBackdrop" class="mobile-menu-backdrop" type="button" aria-label="メニューを閉じる"></button>
       <section id="authPanel" class="auth-panel" aria-label="ログイン">
+        <button id="menuClose" class="mobile-menu-close" type="button" aria-label="メニューを閉じる">×</button>
         <div class="experience-brand">
           <span class="brand-mark">K</span>
           <strong>Kaimono Clock</strong>
@@ -1785,6 +1832,7 @@
                       <option value="once">単発</option>
                       <option value="weekly">毎週</option>
                       <option value="monthly">毎月</option>
+                      <option value="range">期間割引</option>
                     </select>
                   </label>
                   <label id="saleDateWrap" class="schedule-label" for="saleDate">
@@ -1793,7 +1841,7 @@
                   </label>
                   <label id="saleWeekdayWrap" class="schedule-label hidden" for="saleWeekday">
                     <span>曜日</span>
-                    <select id="saleWeekday" class="schedule-field">
+                    <select id="saleWeekday" class="schedule-field" multiple size="4">
                       <option value="0">日曜日</option>
                       <option value="1">月曜日</option>
                       <option value="2">火曜日</option>
@@ -1805,7 +1853,11 @@
                   </label>
                   <label id="saleMonthDayWrap" class="schedule-label hidden" for="saleMonthDay">
                     <span>日にち</span>
-                    <input id="saleMonthDay" class="schedule-field" type="number" min="1" max="31" step="1" placeholder="例: 15" />
+                    <input id="saleMonthDay" class="schedule-field" type="text" inputmode="numeric" placeholder="例: 10,20,30" />
+                  </label>
+                  <label id="saleEndDateWrap" class="schedule-label hidden" for="saleEndDate">
+                    <span>終了日</span>
+                    <input id="saleEndDate" class="schedule-field" type="date" />
                   </label>
                 </div>
               </fieldset>
@@ -1858,14 +1910,25 @@
         const panel = document.querySelector("#authPanel");
         if (!panel) return;
         const toggle = document.querySelector("#menuToggle");
+        const close = document.querySelector("#menuClose");
+        const backdrop = document.querySelector("#menuBackdrop");
 
         const setOpen = (open) => {
           panel.classList.toggle("menu-open", open);
           toggle?.setAttribute("aria-expanded", String(open));
+          backdrop?.classList.toggle("is-open", open);
         };
 
         panel.classList.remove("smart-hidden", "smart-visible");
         toggle?.addEventListener("click", () => setOpen(!panel.classList.contains("menu-open")));
+        close?.addEventListener("click", () => {
+          setOpen(false);
+          toggle?.focus();
+        });
+        backdrop?.addEventListener("click", () => setOpen(false));
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") setOpen(false);
+        });
         panel.querySelectorAll("a").forEach((link) => {
           link.addEventListener("click", () => setOpen(false));
         });
@@ -1956,6 +2019,8 @@
         saleWeekday: document.querySelector("#saleWeekday"),
         saleMonthDayWrap: document.querySelector("#saleMonthDayWrap"),
         saleMonthDay: document.querySelector("#saleMonthDay"),
+        saleEndDateWrap: document.querySelector("#saleEndDateWrap"),
+        saleEndDate: document.querySelector("#saleEndDate"),
         itemNote: document.querySelector("#itemNote"),
         shareDiscount: document.querySelector("#shareDiscount"),
         notes: document.querySelector("#notes"),
@@ -2269,8 +2334,11 @@
           shareEnabled: Boolean(row.shared_enabled),
           saleMode: row.sale_mode || "once",
           saleDate: row.sale_date || "",
+          saleEndDate: row.sale_end_date || "",
           saleWeekday: row.sale_weekday == null ? "0" : String(row.sale_weekday),
+          saleWeekdays: row.sale_weekdays || (row.sale_weekday == null ? "" : String(row.sale_weekday)),
           saleMonthDay: row.sale_month_day == null ? "" : String(row.sale_month_day),
+          saleMonthDays: row.sale_month_days || (row.sale_month_day == null ? "" : String(row.sale_month_day)),
           note: row.note || "",
           createdAt: row.created_at ? new Date(row.created_at).toLocaleDateString("ja-JP") : "",
         };
@@ -2288,9 +2356,12 @@
           item_name: note.name,
           price: note.price,
           sale_mode: note.saleMode || "once",
-          sale_date: note.saleMode === "once" && note.saleDate ? note.saleDate : null,
-          sale_weekday: note.saleMode === "weekly" ? Number(note.saleWeekday) : null,
-          sale_month_day: note.saleMode === "monthly" ? Number(note.saleMonthDay) : null,
+          sale_date: ["once", "range"].includes(note.saleMode) && note.saleDate ? note.saleDate : null,
+          sale_end_date: note.saleMode === "range" && note.saleEndDate ? note.saleEndDate : null,
+          sale_weekday: note.saleMode === "weekly" ? Number(String(note.saleWeekdays || note.saleWeekday || "").split(",")[0]) : null,
+          sale_weekdays: note.saleMode === "weekly" ? normalizeCsvNumbers(note.saleWeekdays || note.saleWeekday, 0, 6).join(",") : null,
+          sale_month_day: note.saleMode === "monthly" ? Number(String(note.saleMonthDays || note.saleMonthDay || "").split(",")[0]) : null,
+          sale_month_days: note.saleMode === "monthly" ? normalizeCsvNumbers(note.saleMonthDays || note.saleMonthDay, 1, 31).join(",") : null,
           shared_enabled: Boolean(note.shareEnabled),
           note: note.note || null,
         };
@@ -2300,6 +2371,9 @@
         const row = noteToRow(storeId, note);
         delete row.store_label;
         delete row.origin_label;
+        delete row.sale_weekdays;
+        delete row.sale_month_days;
+        delete row.sale_end_date;
         delete row.shared_enabled;
         return row;
       }
@@ -2335,7 +2409,8 @@
           : `${SUPABASE_TABLE}?select=*&user_id=eq.${encodeURIComponent(state.user.id)}&order=created_at.desc`;
         const rows = await supabaseRequest(query);
         state.notes = groupRows(rows || []);
-        saveDiscountCache();
+        const purged = await purgeExpiredOneTimeNotes();
+        if (!purged) saveDiscountCache();
         setStatus("ready", state.acceptSharedDiscounts
           ? "Supabaseから保存済み・共有済みの割引情報を読み込みました。"
           : "Supabaseから保存済みの割引情報を読み込みました。");
@@ -2373,7 +2448,8 @@
           return true;
         } catch (error) {
           const message = String(error.message || "");
-          if (!message.includes("store_label") && !message.includes("shared_enabled")) throw error;
+          const canFallback = ["store_label", "sale_weekdays", "sale_month_days", "sale_end_date", "shared_enabled"].some((column) => message.includes(column));
+          if (!canFallback) throw error;
           await supabaseRequest(SUPABASE_TABLE, {
             method: "POST",
             headers: { Prefer: "return=minimal" },
@@ -2412,6 +2488,71 @@
           }),
         });
         state.hiddenSharedDiscountIds.add(noteId);
+      }
+
+      function removeNoteFromLocal(storeId, noteId) {
+        const allNotes = loadNotes();
+        allNotes[storeId] = (allNotes[storeId] || []).filter((item) => item.id !== noteId);
+        if (!allNotes[storeId].length) delete allNotes[storeId];
+        state.notes = allNotes;
+        saveDiscountCache();
+      }
+
+      async function deleteNoteEverywhere(storeId, noteId, { renderAfter = true } = {}) {
+        const note = (loadNotes()[storeId] || []).find((item) => item.id === noteId);
+        removeNoteFromLocal(storeId, noteId);
+        if (renderAfter) render();
+        try {
+          if (note?.isShared) {
+            await hideSharedDiscount(noteId);
+            setStatus("ready", "共有された割引情報を自分の画面だけで非表示にしました。");
+          } else {
+            await deleteNoteFromSupabase(noteId);
+            setStatus("ready", "割引情報を削除しました。");
+          }
+        } catch {
+          setStatus("error", note?.isShared
+            ? "共有された割引情報を非表示にできませんでした。共有設定用SQLを確認してください。"
+            : "Supabaseからの削除に失敗しました。テーブル権限を確認してください。");
+        }
+      }
+
+      function parseDateOnly(value) {
+        const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return null;
+        const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        date.setHours(0, 0, 0, 0);
+        return date;
+      }
+
+      function isExpiredDiscountNote(note) {
+        if (!["once", "range"].includes(note.saleMode || "once")) return false;
+        const saleDate = parseDateOnly(note.saleMode === "range" ? note.saleEndDate : note.saleDate);
+        if (!saleDate) return false;
+        const threshold = new Date();
+        threshold.setHours(0, 0, 0, 0);
+        threshold.setDate(threshold.getDate() - 7);
+        return saleDate <= threshold;
+      }
+
+      async function purgeExpiredOneTimeNotes() {
+        if (!hasSession()) return 0;
+        const expired = getDiscountRows().filter((note) => !note.isShared && isExpiredDiscountNote(note));
+        if (!expired.length) return 0;
+
+        const expiredIds = new Set(expired.map((note) => note.id));
+        const allNotes = loadNotes();
+        Object.keys(allNotes).forEach((storeId) => {
+          allNotes[storeId] = (allNotes[storeId] || []).filter((note) => !expiredIds.has(note.id));
+          if (!allNotes[storeId].length) delete allNotes[storeId];
+        });
+        state.notes = allNotes;
+        saveDiscountCache();
+
+        for (const note of expired) {
+          await deleteNoteFromSupabase(note.id).catch(() => null);
+        }
+        return expired.length;
       }
 
       async function updateStoreLabelInSupabase(storeId, storeLabel) {
@@ -2492,23 +2633,46 @@
 
       function describeSaleSchedule(note) {
         const weekdays = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+        const weekdayValues = normalizeCsvNumbers(note.saleWeekdays || note.saleWeekday, 0, 6);
+        const monthDayValues = normalizeCsvNumbers(note.saleMonthDays || note.saleMonthDay, 1, 31);
         if (note.saleMode === "weekly") {
-          return `毎週${weekdays[Number(note.saleWeekday)] || "曜日未設定"}`;
+          return weekdayValues.length
+            ? `毎週${weekdayValues.map((day) => weekdays[day]).join("・")}`
+            : "毎週 曜日未設定";
         }
         if (note.saleMode === "monthly") {
-          return `毎月${note.saleMonthDay || "未設定"}日`;
+          return monthDayValues.length
+            ? `毎月${monthDayValues.join("・")}日`
+            : "毎月 日にち未設定";
+        }
+        if (note.saleMode === "range") {
+          return `${note.saleDate || "開始日未設定"} 〜 ${note.saleEndDate || "終了日未設定"}`;
         }
         return note.saleDate || "未設定";
       }
 
+      function normalizeCsvNumbers(value, min, max) {
+        const values = String(value || "")
+          .split(/[,、\s]+/)
+          .map((item) => Number(item.trim()))
+          .filter((item) => Number.isInteger(item) && item >= min && item <= max);
+        return [...new Set(values)].sort((a, b) => a - b);
+      }
+
+      function selectedWeekdays() {
+        return [...elements.saleWeekday.selectedOptions].map((option) => option.value).join(",");
+      }
+
       function syncScheduleFields() {
         const mode = elements.saleMode.value;
-        elements.saleDateWrap.classList.toggle("hidden", mode !== "once");
+        elements.saleDateWrap.classList.toggle("hidden", !["once", "range"].includes(mode));
         elements.saleWeekdayWrap.classList.toggle("hidden", mode !== "weekly");
         elements.saleMonthDayWrap.classList.toggle("hidden", mode !== "monthly");
-        elements.saleDate.required = mode === "once";
+        elements.saleEndDateWrap.classList.toggle("hidden", mode !== "range");
+        elements.saleDate.required = ["once", "range"].includes(mode);
         elements.saleWeekday.required = mode === "weekly";
         elements.saleMonthDay.required = mode === "monthly";
+        elements.saleEndDate.required = mode === "range";
       }
 
       function distanceMeters(fromLat, fromLon, toLat, toLon) {
@@ -2693,24 +2857,7 @@
             </div>
           `;
           card.querySelector(".delete-btn").addEventListener("click", async () => {
-            const allNotes = loadNotes();
-            allNotes[store.id] = notesFor(store.id).filter((item) => item.id !== note.id);
-            state.notes = allNotes;
-            saveDiscountCache();
-            render();
-            try {
-              if (note.isShared) {
-                await hideSharedDiscount(note.id);
-                setStatus("ready", "共有された割引情報を自分の画面だけで非表示にしました。");
-              } else {
-                await deleteNoteFromSupabase(note.id);
-                setStatus("ready", "Supabaseから割引情報を削除しました。");
-              }
-            } catch {
-              setStatus("error", note.isShared
-                ? "共有された割引情報を非表示にできませんでした。共有設定用SQLを確認してください。"
-                : "Supabaseからの削除に失敗しました。テーブル権限を確認してください。");
-            }
+            await deleteNoteEverywhere(store.id, note.id);
           });
           elements.notes.appendChild(card);
         });
@@ -2801,7 +2948,7 @@
           const row = document.createElement("article");
           row.className = "discount-row";
           const labelEditor = note.isShared
-            ? '<span class="shared-pill">共有情報</span><button class="delete-btn" type="button" data-action="hide-shared">非表示</button>'
+            ? '<span class="shared-pill">共有情報</span><button class="delete-btn" type="button" data-action="delete-discount">非表示</button>'
             : `<form class="label-edit-form" data-store-id="${escapeHtml(note.storeId)}">
                 <input type="text" value="${escapeHtml(note.storeLabel || note.storeName || "")}" aria-label="店舗ラベル" required />
                 <button class="btn btn-ghost" type="submit">変更</button>
@@ -2822,20 +2969,11 @@
               <small class="muted">買い時</small>
               <span>${escapeHtml(describeSaleSchedule(note))}</span>
               ${note.note ? `<small>${escapeHtml(note.note)}</small>` : ""}
+              <button class="delete-btn" type="button" data-action="delete-discount">削除</button>
             </div>
           `;
-          row.querySelector('[data-action="hide-shared"]')?.addEventListener("click", async () => {
-            const allNotes = loadNotes();
-            allNotes[note.storeId] = (allNotes[note.storeId] || []).filter((item) => item.id !== note.id);
-            state.notes = allNotes;
-            saveDiscountCache();
-            render();
-            try {
-              await hideSharedDiscount(note.id);
-              setStatus("ready", "共有された割引情報を自分の画面だけで非表示にしました。");
-            } catch {
-              setStatus("error", "共有された割引情報を非表示にできませんでした。共有設定用SQLを確認してください。");
-            }
+          row.querySelector('[data-action="delete-discount"]').addEventListener("click", async () => {
+            await deleteNoteEverywhere(note.storeId, note.id);
           });
           row.querySelector(".label-edit-form")?.addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -3084,6 +3222,25 @@
         if (!store) return;
 
         const allNotes = loadNotes();
+        const saleMode = elements.saleMode.value;
+        const saleWeekdays = selectedWeekdays();
+        const saleMonthDays = normalizeCsvNumbers(elements.saleMonthDay.value, 1, 31).join(",");
+        if (saleMode === "weekly" && !saleWeekdays) {
+          setStatus("error", "毎週の割引は曜日を1つ以上選んでください。");
+          return;
+        }
+        if (saleMode === "monthly" && !saleMonthDays) {
+          setStatus("error", "毎月の割引は1〜31の日にちを入力してください。例: 10,20,30");
+          return;
+        }
+        if (saleMode === "range") {
+          const start = parseDateOnly(elements.saleDate.value);
+          const end = parseDateOnly(elements.saleEndDate.value);
+          if (!start || !end || end < start) {
+            setStatus("error", "期間割引は開始日と終了日を正しく入力してください。");
+            return;
+          }
+        }
         const newNote = {
           id: crypto.randomUUID(),
           storeName: store.name,
@@ -3092,10 +3249,13 @@
           storeType: store.type,
           name: elements.itemName.value.trim(),
           price: Number(elements.itemPrice.value),
-          saleMode: elements.saleMode.value,
+          saleMode,
           saleDate: elements.saleDate.value,
-          saleWeekday: elements.saleWeekday.value,
-          saleMonthDay: elements.saleMonthDay.value,
+          saleEndDate: elements.saleEndDate.value,
+          saleWeekday: saleWeekdays.split(",")[0] || "",
+          saleWeekdays,
+          saleMonthDay: saleMonthDays.split(",")[0] || "",
+          saleMonthDays,
           shareEnabled: elements.shareDiscount.checked,
           note: elements.itemNote.value.trim(),
           createdAt: new Date().toLocaleDateString("ja-JP"),

@@ -13,7 +13,10 @@ create table if not exists public.nsp_user_discounts (
   sale_mode text not null default 'once',
   sale_date date,
   sale_weekday integer,
+  sale_weekdays text,
   sale_month_day integer,
+  sale_month_days text,
+  sale_end_date date,
   note text,
   shared_enabled boolean not null default false,
   created_at timestamptz not null default now()
@@ -22,6 +25,9 @@ create table if not exists public.nsp_user_discounts (
 alter table public.nsp_user_discounts
   add column if not exists store_label text,
   add column if not exists origin_label text,
+  add column if not exists sale_weekdays text,
+  add column if not exists sale_month_days text,
+  add column if not exists sale_end_date date,
   add column if not exists shared_enabled boolean not null default false;
 
 create index if not exists nsp_user_discounts_user_created_idx
