@@ -1,0 +1,2662 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <title>家計簿体験 | Kaimono Clock</title>
+    <style>
+:root {
+  --ink: #1e2a2f;
+  --muted: #65737a;
+  --line: #dce6e4;
+  --paper: #fffdf7;
+  --panel: #ffffff;
+  --mint: #1f8f8b;
+  --mint-dark: #126966;
+  --coral: #ff7a59;
+  --sun: #f8c24e;
+  --sky: #72b7f2;
+  --lavender: #9a7bd1;
+  --green: #74b66d;
+  --shadow: 0 16px 34px rgba(30, 42, 47, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", Meiryo, sans-serif;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255, 122, 89, 0.16), transparent 24rem),
+    radial-gradient(circle at 88% 4%, rgba(114, 183, 242, 0.18), transparent 22rem),
+    linear-gradient(180deg, #fff8df 0%, #f3fbf8 46%, #fffdf7 100%);
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  min-width: 0;
+}
+
+.app-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.top-bar,
+.calendar-section,
+.entry-panel,
+.ledger-section,
+.report-section,
+.view-tabs {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(220, 230, 228, 0.95);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.top-bar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.35fr) minmax(170px, 0.75fr) repeat(3, minmax(135px, 0.55fr));
+  gap: 14px;
+  align-items: stretch;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.brand-mark {
+  display: grid;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 8px;
+  background: #fff8df;
+  border: 1px solid #ffe099;
+}
+
+.brand-mark svg {
+  width: 54px;
+  height: 54px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--mint-dark);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  line-height: 1.12;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: 1.15rem;
+}
+
+h3 {
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
+.budget-panel,
+.stat-tile {
+  min-height: 78px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fffdf7;
+  border: 1px solid var(--line);
+}
+
+.budget-panel label,
+.stat-tile span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.budget-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--mint-dark);
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.budget-input input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.stat-tile strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.remaining strong {
+  color: var(--mint-dark);
+}
+
+.income strong {
+  color: var(--green);
+}
+
+.remaining.is-over strong {
+  color: #c84b35;
+}
+
+.view-tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.tab-button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.tab-button.is-active {
+  background: var(--mint);
+  color: white;
+}
+
+.view-page {
+  display: none;
+}
+
+.view-page.is-active {
+  display: block;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+.calendar-section,
+.entry-panel,
+.ledger-section,
+.report-section {
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.calendar-only {
+  margin-top: 18px;
+}
+
+.calendar-only .calendar-grid {
+  min-height: 520px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-head.compact {
+  margin-bottom: 12px;
+}
+
+.icon-button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+  color: var(--ink);
+}
+
+.icon-button:hover,
+.ghost-button:hover {
+  border-color: var(--mint);
+}
+
+.icon-button svg,
+.primary-button svg,
+.secondary-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.weekday-row,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.weekday-row {
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.calendar-grid {
+  gap: 8px;
+}
+
+.day-cell {
+  appearance: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 98px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+  text-align: left;
+}
+
+.day-cell:not(.empty):hover {
+  border-color: var(--mint);
+  transform: translateY(-1px);
+}
+
+.day-cell.empty {
+  background: rgba(255, 255, 255, 0.44);
+  box-shadow: none;
+}
+
+.day-cell.is-today {
+  border-color: var(--coral);
+}
+
+.day-cell.is-selected {
+  outline: 3px solid rgba(31, 143, 139, 0.18);
+  border-color: var(--mint);
+}
+
+.day-number {
+  font-weight: 900;
+}
+
+.day-total {
+  margin-top: auto;
+  color: var(--mint-dark);
+  font-size: 0.86rem;
+  font-weight: 900;
+  word-break: keep-all;
+}
+
+.day-income {
+  min-height: 1em;
+  color: var(--green);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.discount-chip {
+  min-width: 0;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #9a4b30;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discount-record {
+  border-color: #ffd6cc;
+  background: #fff8f4;
+}
+
+.discount-record .expense-amount {
+  color: #9a4b30;
+}
+
+.category-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.income-dot {
+  background: var(--green);
+}
+
+.expense-form {
+  display: grid;
+  gap: 11px;
+}
+
+.expense-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.expense-form input,
+.expense-form select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fffdf7;
+  color: var(--ink);
+  outline: 0;
+}
+
+.expense-form input:focus,
+.expense-form select:focus {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 3px rgba(31, 143, 139, 0.14);
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.primary-button {
+  border: 0;
+  background: var(--mint);
+  color: white;
+}
+
+.primary-button:hover {
+  background: var(--mint-dark);
+}
+
+.secondary-button {
+  border: 0;
+  background: var(--green);
+  color: white;
+}
+
+.secondary-button:hover {
+  background: #548f4f;
+}
+
+.ghost-button {
+  border: 1px solid var(--line);
+  background: #fffdf7;
+  color: var(--ink);
+  padding: 0 14px;
+}
+
+.summary-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.income-block {
+  padding-bottom: 2px;
+}
+
+.summary-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.summary-head span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.category-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.budget-alert {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 122, 89, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 122, 89, 0.11);
+  color: #9d3f2d;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.global-budget-alert {
+  margin-top: 12px;
+  margin-bottom: 0;
+  box-shadow: 0 12px 24px rgba(157, 63, 45, 0.12);
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.category-budget-row {
+  grid-template-columns: 82px minmax(62px, 1fr) auto;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(220, 230, 228, 0.72);
+}
+
+.category-budget-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.summary-label {
+  min-width: 0;
+}
+
+.category-budget-input {
+  display: flex;
+  grid-column: 1 / 3;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.category-budget-input input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #fffdf7;
+  color: var(--ink);
+  font-weight: 900;
+  outline: 0;
+}
+
+.category-budget-status {
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-align: right;
+}
+
+.category-budget-status.is-over {
+  color: #c84b35;
+}
+
+.bar-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eaf1ef;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.ledger-section {
+  margin-top: 18px;
+}
+
+.expense-list {
+  display: grid;
+  gap: 10px;
+}
+
+.expense-item {
+  display: grid;
+  grid-template-columns: 92px 1fr auto 40px;
+  gap: 12px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.date-pill,
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.date-pill {
+  background: #edf7f4;
+  color: var(--mint-dark);
+}
+
+.category-pill {
+  width: fit-content;
+  padding: 0 10px;
+  color: white;
+}
+
+.expense-main {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.expense-main strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-main span {
+  display: inline-flex;
+}
+
+.record-subline {
+  display: block;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-amount {
+  font-size: 1rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.delete-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: #c84b35;
+}
+
+.delete-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.income-item .expense-amount {
+  color: var(--green);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(30, 42, 47, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.entry-modal {
+  width: min(320px, calc(100vw - 36px));
+  max-height: min(760px, calc(100vh - 36px));
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 24px 70px rgba(30, 42, 47, 0.26);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.modal-tab {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.modal-tab.is-active {
+  background: var(--mint);
+  color: white;
+}
+
+.modal-form {
+  display: none;
+}
+
+.modal-form.is-active {
+  display: grid;
+}
+
+.day-mini-list {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.day-mini-list h3 {
+  margin-bottom: 10px;
+}
+
+.compact-list {
+  gap: 8px;
+}
+
+.compact-record {
+  grid-template-columns: 56px 1fr auto 40px;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.empty-state svg {
+  width: 120px;
+  height: 80px;
+}
+
+.empty-state p {
+  margin-bottom: 0;
+  font-weight: 800;
+}
+
+.report-page {
+  margin-top: 18px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 18px;
+}
+
+.report-section.wide {
+  grid-row: span 2;
+}
+
+.report-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.monthly-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 310px;
+  align-items: end;
+  padding: 8px 4px 0;
+}
+
+.month-bar {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+}
+
+.bar-pair {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 7px;
+  height: 220px;
+  padding: 10px 4px;
+  border-radius: 8px;
+  background: #fffdf7;
+  border: 1px solid var(--line);
+}
+
+.budget-bar,
+.spent-bar {
+  display: block;
+  width: 20px;
+  min-height: 4px;
+  border-radius: 999px 999px 4px 4px;
+}
+
+.budget-bar {
+  background: var(--sun);
+}
+
+.spent-bar {
+  background: var(--mint);
+}
+
+.spent-bar.is-over {
+  background: var(--coral);
+}
+
+.month-bar strong {
+  font-size: 0.86rem;
+}
+
+.month-bar span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.saving-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.saving-stats div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.saving-stats span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.saving-stats strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--mint-dark);
+  font-size: 1.12rem;
+  line-height: 1;
+}
+
+.saving-flow,
+.ranking-list {
+  display: grid;
+  gap: 10px;
+}
+
+.saving-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.saving-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eaf1ef;
+}
+
+.saving-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.saving-fill.plus {
+  background: var(--green);
+}
+
+.saving-fill.minus {
+  background: var(--coral);
+}
+
+.ranking-row {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.rank-badge {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--mint);
+  color: white;
+  font-weight: 900;
+}
+
+.ranking-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ranking-main div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ranking-main strong,
+.ranking-main span {
+  min-width: 0;
+  font-size: 0.82rem;
+}
+
+.ranking-main span {
+  color: var(--muted);
+  font-weight: 800;
+  text-align: right;
+}
+
+@media (max-width: 940px) {
+  .top-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .brand-block {
+    grid-column: 1 / -1;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-section.wide {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    width: min(370px, calc(100vw - 20px));
+    max-width: 370px;
+    margin-right: auto;
+    margin-left: auto;
+    padding-top: 10px;
+  }
+
+  .top-bar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .view-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .brand-mark {
+    flex-basis: 56px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .calendar-section,
+  .entry-panel,
+  .ledger-section,
+  .report-section {
+    padding: 12px;
+  }
+
+  .section-head {
+    gap: 8px;
+  }
+
+  .calendar-grid,
+  .weekday-row {
+    gap: 4px;
+  }
+
+  .day-cell {
+    min-height: 68px;
+    padding: 5px 4px;
+  }
+
+  .calendar-only .calendar-grid {
+    min-height: auto;
+  }
+
+  .day-total {
+    font-size: 0.66rem;
+  }
+
+  .day-income {
+    font-size: 0.62rem;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .summary-row {
+    grid-template-columns: 74px 1fr auto;
+    font-size: 0.78rem;
+  }
+
+  .category-budget-input {
+    grid-column: 1 / -1;
+  }
+
+  .category-budget-status {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .expense-item {
+    grid-template-columns: 1fr 40px;
+    gap: 8px;
+  }
+
+  .date-pill {
+    justify-self: start;
+  }
+
+  .expense-main {
+    grid-column: 1 / 2;
+  }
+
+  .expense-amount {
+    grid-column: 1 / 2;
+    text-align: left;
+  }
+
+  .delete-button {
+    grid-column: 2 / 3;
+    grid-row: 1 / 4;
+    align-self: center;
+  }
+
+  .entry-modal {
+    max-height: calc(100vh - 20px);
+    padding: 14px;
+  }
+
+  .compact-record {
+    grid-template-columns: 1fr 40px;
+  }
+
+  .ghost-button {
+    padding: 0 10px;
+    font-size: 0.82rem;
+  }
+
+  .monthly-chart {
+    gap: 8px;
+    min-height: 250px;
+  }
+
+  .bar-pair {
+    height: 166px;
+    gap: 4px;
+    padding: 8px 3px;
+  }
+
+  .budget-bar,
+  .spent-bar {
+    width: 13px;
+  }
+
+  .saving-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .saving-row {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .saving-row strong {
+    grid-column: 2 / 3;
+  }
+
+  .ranking-main div {
+    display: grid;
+  }
+
+  .ranking-main span {
+    text-align: left;
+  }
+}
+
+
+    .experience-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 12px;
+      border: 1px solid rgba(220, 230, 228, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .experience-brand,
+    .experience-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .experience-logo {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(140deg, var(--mint), var(--coral));
+      font-weight: 900;
+    }
+
+    .experience-brand strong {
+      overflow-wrap: anywhere;
+    }
+
+    .experience-link {
+      min-height: 38px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: #fff;
+      font-weight: 900;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .session-pill {
+      min-height: 38px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 10px;
+      color: var(--muted);
+      background: rgba(255, 253, 247, 0.86);
+      font-size: 0.84rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .experience-link.primary {
+      border-color: transparent;
+      color: #fff;
+      background: #142c2c;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+    }
+
+    @media (max-width: 640px) {
+      .mobile-menu-btn {
+        position: sticky;
+        top: 8px;
+        z-index: 35;
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        font-size: 1.35rem;
+        font-weight: 950;
+      }
+
+      .experience-nav {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 40;
+        width: min(86vw, 340px);
+        height: 100dvh;
+        overflow: auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        align-content: start;
+        align-items: stretch;
+        margin: 0;
+        padding: 16px;
+        border-radius: 0 8px 8px 0;
+        transform: translateX(-105%);
+        transition: transform 180ms ease;
+      }
+
+      .experience-nav.menu-open,
+      .experience-nav:focus-within {
+        transform: translateX(0);
+      }
+
+      .experience-brand,
+      .experience-links {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .experience-link {
+        width: 100%;
+      }
+
+      .session-pill {
+        width: 100%;
+      }
+    }
+
+    :root {
+      color-scheme: dark;
+      --ink: #e7eef6;
+      --muted: #9baabd;
+      --line: #253548;
+      --paper: #07111c;
+      --panel: #101b28;
+      --mint: #2dd4bf;
+      --mint-dark: #0f766e;
+      --coral: #38bdf8;
+      --sun: #818cf8;
+      --sky: #60a5fa;
+      --lavender: #a5b4fc;
+      --green: #22c55e;
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.38);
+    }
+
+    body {
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(45, 212, 191, 0.12), transparent 24rem),
+        radial-gradient(circle at 88% 4%, rgba(96, 165, 250, 0.14), transparent 22rem),
+        linear-gradient(180deg, #060b12 0%, #0c1622 48%, #080d14 100%);
+    }
+
+    .top-bar,
+    .calendar-section,
+    .entry-panel,
+    .ledger-section,
+    .report-section,
+    .view-tabs,
+    .experience-nav,
+    .budget-panel,
+    .stat-tile,
+    .day-cell,
+    .expense-form input,
+    .expense-form select,
+    .ghost-button,
+    .category-budget-input input,
+    .expense-item,
+    .modal-tabs,
+    .empty-state,
+    .bar-pair,
+    .saving-stats div,
+    .ranking-row,
+    .entry-modal,
+    .experience-link,
+    .session-pill,
+    .icon-button {
+      color: var(--ink);
+      background: rgba(12, 22, 34, 0.9);
+      border-color: rgba(83, 104, 128, 0.62);
+      box-shadow: var(--shadow);
+    }
+
+    .brand-mark {
+      background: rgba(15, 26, 38, 0.94);
+      border-color: var(--line);
+    }
+
+    .experience-logo {
+      background: linear-gradient(140deg, #14b8a6, #2563eb);
+    }
+
+    .eyebrow,
+    .budget-input,
+    .remaining strong,
+    .day-total,
+    .date-pill,
+    .saving-stats strong {
+      color: #2dd4bf;
+    }
+
+    .budget-panel label,
+    .stat-tile span,
+    .weekday-row,
+    .expense-form label,
+    .summary-head span,
+    .category-budget-input,
+    .category-budget-status,
+    .report-note,
+    .month-bar span,
+    .saving-stats span,
+    .ranking-main span,
+    .session-pill {
+      color: var(--muted);
+    }
+
+    .budget-input input {
+      color: var(--ink);
+    }
+
+    .tab-button.is-active,
+    .primary-button,
+    .modal-tab.is-active,
+    .rank-badge,
+    .experience-link.primary {
+      color: #f8fbff;
+      background: linear-gradient(135deg, #0f766e, #1d4ed8);
+    }
+
+    .secondary-button {
+      color: #f8fbff;
+      background: #0f766e;
+    }
+
+    .primary-button:hover,
+    .secondary-button:hover {
+      background: #2563eb;
+    }
+
+    .day-cell.empty {
+      background: rgba(15, 26, 38, 0.48);
+    }
+
+    .day-cell.is-today,
+    .day-cell.is-selected,
+    .day-cell:not(.empty):hover,
+    .icon-button:hover,
+    .ghost-button:hover {
+      border-color: var(--mint);
+    }
+
+    .day-cell.is-selected,
+    .expense-form input:focus,
+    .expense-form select:focus {
+      box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.16);
+      outline-color: rgba(45, 212, 191, 0.16);
+    }
+
+    .discount-chip,
+    .discount-record .expense-amount,
+    .category-budget-status.is-over,
+    .remaining.is-over strong,
+    .delete-button {
+      color: #7dd3fc;
+    }
+
+    .discount-record,
+    .budget-alert {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.32);
+      color: #bae6fd;
+    }
+
+    .bar-track,
+    .saving-track {
+      background: #152235;
+    }
+
+    .date-pill {
+      background: rgba(45, 212, 191, 0.13);
+    }
+
+    .delete-button {
+      background: rgba(15, 26, 38, 0.9);
+      border-color: var(--line);
+    }
+
+    .modal-backdrop {
+      background: rgba(3, 7, 18, 0.62);
+    }
+
+    .theme-control {
+      display: grid;
+      gap: 5px;
+      min-width: 130px;
+    }
+
+    .theme-control span {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 900;
+    }
+
+    .theme-control select {
+      min-height: 38px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--paper);
+      font: inherit;
+      font-weight: 900;
+      padding: 0 10px;
+    }
+
+    html[data-theme="cool"] {
+      color-scheme: dark;
+      --ink: #dce7ef;
+      --muted: #9aa8b4;
+      --line: #303b47;
+      --paper: #151b23;
+      --panel: #1b222c;
+      --mint: #9cdcfe;
+      --mint-dark: #2b6f88;
+      --coral: #75beff;
+      --sun: #7aa7c7;
+      --sky: #86c5df;
+      --lavender: #a8c7df;
+      --green: #7dd3a8;
+      --shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+    }
+
+    html[data-theme="warm"] {
+      color-scheme: light;
+      --ink: #24332f;
+      --muted: #687a75;
+      --line: #f0d7ca;
+      --paper: #fff4e8;
+      --panel: #fffdf8;
+      --mint: #35b6a6;
+      --mint-dark: #ff8a6b;
+      --coral: #ff8a6b;
+      --sun: #ffd166;
+      --sky: #ffb36b;
+      --lavender: #b79be8;
+      --green: #35b681;
+      --shadow: 0 16px 34px rgba(181, 94, 65, 0.14);
+    }
+
+    html[data-theme="white-blue"] {
+      color-scheme: light;
+      --ink: #213042;
+      --muted: #5b6f86;
+      --line: #b9d9f0;
+      --paper: #f5fbff;
+      --panel: #ffffff;
+      --mint: #7ccdf7;
+      --mint-dark: #4aaee8;
+      --coral: #70c8f5;
+      --sun: #d8f2ff;
+      --sky: #b8e6ff;
+      --lavender: #9bdcff;
+      --green: #3aa77d;
+      --shadow: 0 14px 34px rgba(46, 112, 158, 0.16);
+    }
+
+    html[data-theme="cool"] body {
+      background:
+        radial-gradient(circle at 12% 10%, rgba(156, 220, 254, 0.13), transparent 24rem),
+        linear-gradient(180deg, #1e1e1e 0%, #1f252d 48%, #181c22 100%);
+    }
+
+    html[data-theme="warm"] body {
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255, 138, 107, 0.18), transparent 24rem),
+        radial-gradient(circle at 88% 4%, rgba(53, 182, 166, 0.14), transparent 22rem),
+        linear-gradient(180deg, #fff4e8 0%, #fffdf8 48%, #f5fbf8 100%);
+    }
+
+    html[data-theme="white-blue"] body {
+      background:
+        radial-gradient(circle at 12% 10%, rgba(91, 184, 238, 0.2), transparent 24rem),
+        linear-gradient(180deg, #ffffff 0%, #eef8ff 46%, #f8fcff 100%);
+    }
+
+    html[data-theme] .top-bar,
+    html[data-theme] .calendar-section,
+    html[data-theme] .entry-panel,
+    html[data-theme] .ledger-section,
+    html[data-theme] .report-section,
+    html[data-theme] .view-tabs,
+    html[data-theme] .experience-nav,
+    html[data-theme] .budget-panel,
+    html[data-theme] .stat-tile,
+    html[data-theme] .day-cell,
+    html[data-theme] .expense-form input,
+    html[data-theme] .expense-form select,
+    html[data-theme] .ghost-button,
+    html[data-theme] .category-budget-input input,
+    html[data-theme] .expense-item,
+    html[data-theme] .modal-tabs,
+    html[data-theme] .empty-state,
+    html[data-theme] .bar-pair,
+    html[data-theme] .saving-stats div,
+    html[data-theme] .ranking-row,
+    html[data-theme] .entry-modal,
+    html[data-theme] .experience-link,
+    html[data-theme] .session-pill,
+    html[data-theme] .icon-button {
+      color: var(--ink);
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      border-color: var(--line);
+    }
+
+    html[data-theme] .tab-button.is-active,
+    html[data-theme] .primary-button,
+    html[data-theme] .modal-tab.is-active,
+    html[data-theme] .rank-badge,
+    html[data-theme] .experience-link.primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--mint-dark), var(--sky));
+    }
+
+    html[data-theme="cool"] .experience-logo {
+      background: linear-gradient(140deg, #2b6f88, #4b8da8);
+    }
+
+    html[data-theme="white-blue"] .experience-logo {
+      background: linear-gradient(140deg, #4aaee8, #91d9ff);
+    }
+
+    html[data-theme="warm"] .brand-mark {
+      background: #fff0e5;
+      border-color: #ffd7c2;
+    }
+
+    html[data-theme="white-blue"] .brand-mark {
+      background: #eef8ff;
+      border-color: #b9d9f0;
+    }
+
+    html[data-theme="warm"] .experience-logo {
+      background: linear-gradient(140deg, #35b6a6, #ff8a6b 72%, #ffb36b);
+    }
+
+    html[data-theme="warm"] .tab-button.is-active,
+    html[data-theme="warm"] .primary-button,
+    html[data-theme="warm"] .modal-tab.is-active,
+    html[data-theme="warm"] .rank-badge,
+    html[data-theme="warm"] .experience-link.primary {
+      background: linear-gradient(135deg, #ff8a6b, #ffb36b);
+    }
+
+    html[data-theme="white-blue"] .tab-button.is-active,
+    html[data-theme="white-blue"] .primary-button,
+    html[data-theme="white-blue"] .modal-tab.is-active,
+    html[data-theme="white-blue"] .rank-badge,
+    html[data-theme="white-blue"] .experience-link.primary {
+      color: #12344f;
+      background: linear-gradient(135deg, #7ccdf7, #b8e6ff);
+      border-color: #9fd8f8;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <button id="menuToggle" class="mobile-menu-btn" type="button" aria-controls="experienceNav" aria-expanded="false">☰</button>
+      <nav id="experienceNav" class="experience-nav" aria-label="アプリ体験ナビゲーション">
+        <div class="experience-brand">
+          <span class="experience-logo">K</span>
+          <strong>Kaimono Clock</strong>
+        </div>
+        <label class="theme-control">
+          <span>カラー</span>
+          <select data-theme-select aria-label="テーマカラー">
+            <option value="warm">暖色</option>
+            <option value="cool">寒色</option>
+            <option value="white-blue">白青</option>
+          </select>
+        </label>
+        <div class="experience-links">
+          <span id="sessionPill" class="session-pill">未ログイン</span>
+          <a class="experience-link" href="./index.html">体験トップ</a>
+          <a class="experience-link" href="./app.html">買い時メモ</a>
+          <a class="experience-link primary" href="./household.html" aria-current="page">家計簿体験</a>
+        </div>
+      </nav>
+      <header class="top-bar" aria-label="家計簿の概要">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <path d="M13 22c0-5 4-9 9-9h21c5 0 9 4 9 9v25c0 5-4 9-9 9H22c-5 0-9-4-9-9V22z" fill="#132238"/>
+              <path d="M18 23c0-3 2-5 5-5h20c3 0 5 2 5 5v23c0 3-2 5-5 5H23c-3 0-5-2-5-5V23z" fill="#0f766e"/>
+              <path d="M22 27h22v5H22v-5zm0 10h10v10H22V37zm14 0h8v3h-8v-3zm0 7h8v3h-8v-3z" fill="#e7eef6"/>
+              <path d="M16 13c3 0 7 2 8 6-5 1-9-1-8-6z" fill="#38bdf8"/>
+              <path d="M43 12c-4 1-6 4-5 8 5-1 7-4 5-8z" fill="#818cf8"/>
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">Month Mate</p>
+            <h1>今月の支出ノート</h1>
+          </div>
+        </div>
+
+        <div class="budget-panel">
+          <label for="monthlyBudget">この月の予算</label>
+          <div class="budget-input">
+            <span>¥</span>
+            <input id="monthlyBudget" type="number" inputmode="numeric" min="0" step="500" value="50000">
+          </div>
+        </div>
+
+        <div class="stat-tile">
+          <span>使った金額</span>
+          <strong id="spentTotal">¥0</strong>
+        </div>
+        <div class="stat-tile income">
+          <span>今月の収入</span>
+          <strong id="incomeTotal">¥0</strong>
+        </div>
+        <div class="stat-tile remaining">
+          <span>残り予算</span>
+          <strong id="remainingBudget">¥0</strong>
+        </div>
+      </header>
+
+      <nav class="view-tabs" aria-label="ページ切り替え">
+        <button class="tab-button is-active" type="button" data-view="calendarView">カレンダー</button>
+        <button class="tab-button" type="button" data-view="reportView">今月の分析</button>
+      </nav>
+      <div id="globalBudgetAlert" class="budget-alert global-budget-alert" hidden></div>
+
+      <section id="calendarView" class="view-page is-active">
+        <section class="calendar-section calendar-only" aria-label="月別カレンダー">
+          <div class="section-head">
+            <button class="icon-button" id="prevMonth" type="button" aria-label="前の月">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 5 8.5 12l7 7"/></svg>
+            </button>
+            <div>
+              <p class="eyebrow">Calendar</p>
+              <h2 id="currentMonth">2026年6月</h2>
+            </div>
+            <button class="icon-button" id="nextMonth" type="button" aria-label="次の月">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.5 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="weekday-row" aria-hidden="true">
+            <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
+      </section>
+
+      <section id="reportView" class="view-page report-page" aria-label="今月の分析">
+        <div class="report-grid">
+          <section class="report-section wide">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Monthly</p>
+                <h2>月単位の予算と支出</h2>
+              </div>
+              <span class="report-note">直近6か月</span>
+            </div>
+            <div id="monthlyChart" class="monthly-chart"></div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Savings</p>
+                <h2>積み立ての収支</h2>
+              </div>
+            </div>
+            <div class="saving-stats">
+              <div>
+                <span>今月の積み立て</span>
+                <strong id="currentSaving">¥0</strong>
+              </div>
+              <div>
+                <span>直近6か月の累計</span>
+                <strong id="totalSaving">¥0</strong>
+              </div>
+            </div>
+            <div id="savingFlow" class="saving-flow"></div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Ranking</p>
+                <h2>ジャンル別ランキング</h2>
+              </div>
+            </div>
+            <div id="categoryRanking" class="ranking-list"></div>
+          </section>
+
+          <section class="report-section">
+            <div class="summary-head">
+              <div>
+                <p class="eyebrow">Budget</p>
+                <h2>ジャンル別予算</h2>
+              </div>
+              <span id="entryCount">0件</span>
+            </div>
+            <div id="categoryBudgetAlert" class="budget-alert" hidden></div>
+            <div id="categorySummary" class="category-summary"></div>
+          </section>
+
+          <section class="report-section wide">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">List</p>
+                <h2 id="ledgerTitle">今月の明細</h2>
+              </div>
+            </div>
+            <div id="expenseList" class="expense-list"></div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Income</p>
+                <h2>今月の収入</h2>
+              </div>
+            </div>
+            <div id="incomeList" class="expense-list"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="entryModal" hidden>
+      <section class="entry-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">Entry</p>
+            <h2 id="modalTitle">入力</h2>
+          </div>
+          <button class="icon-button" id="closeModal" type="button" aria-label="閉じる">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="modal-tabs" aria-label="入力種類">
+          <button class="modal-tab is-active" type="button" data-entry-tab="expense">支出</button>
+          <button class="modal-tab" type="button" data-entry-tab="income">収入</button>
+        </div>
+
+        <form id="expenseForm" class="expense-form modal-form is-active" data-entry-panel="expense">
+          <input id="expenseDate" type="hidden" required>
+          <label>
+            ジャンル
+            <select id="expenseCategory" required></select>
+          </label>
+          <label>
+            内容
+            <input id="expenseTitle" type="text" maxlength="32" placeholder="例: お昼ごはん" required>
+          </label>
+          <label>
+            金額
+            <input id="expenseAmount" type="number" inputmode="numeric" min="1" step="1" placeholder="680" required>
+          </label>
+          <button class="primary-button" type="submit">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            支出を追加
+          </button>
+        </form>
+
+        <form id="incomeForm" class="expense-form modal-form" data-entry-panel="income">
+          <input id="incomeDate" type="hidden" required>
+          <label>
+            ジャンル
+            <select id="incomeCategory" required>
+              <option value="allowance">お小遣い</option>
+              <option value="salary">給与</option>
+            </select>
+          </label>
+          <label>
+            内容
+            <input id="incomeTitle" type="text" maxlength="32" placeholder="例: バイト代" required>
+          </label>
+          <label>
+            金額
+            <input id="incomeAmount" type="number" inputmode="numeric" min="1" step="1" placeholder="10000" required>
+          </label>
+          <button class="secondary-button" type="submit">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            収入を追加
+          </button>
+        </form>
+
+        <div class="day-mini-list">
+          <h3>この日の記録</h3>
+          <div id="modalDayList" class="expense-list compact-list"></div>
+        </div>
+      </section>
+    </div>
+
+    <template id="emptyTemplate">
+      <div class="empty-state">
+        <svg viewBox="0 0 120 80" aria-hidden="true">
+          <rect x="18" y="19" width="84" height="48" rx="8" fill="#132238"/>
+          <path d="M30 33h60M30 45h34M30 56h48" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="91" cy="22" r="14" fill="#38bdf8"/>
+          <path d="M85 22h12M91 16v12" stroke="#e7eef6" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+        <p>この月の記録はまだありません。</p>
+      </div>
+    </template>
+    <script>
+const categories = [
+  { id: "food", label: "食料品", color: "#1f8f8b" },
+  { id: "daily", label: "日用品", color: "#60a5fa" },
+  { id: "transport", label: "交通", color: "#72b7f2" },
+  { id: "study", label: "学習", color: "#9a7bd1" },
+  { id: "fashion", label: "服・美容", color: "#818cf8" },
+  { id: "fun", label: "遊び", color: "#22c55e" },
+  { id: "other", label: "その他", color: "#6b7780" }
+];
+
+const incomeCategories = [
+  { id: "allowance", label: "お小遣い", color: "#1f8f8b" },
+  { id: "salary", label: "給与", color: "#22c55e" }
+];
+
+const SESSION_KEY = "kaimono-clock-session-v2";
+const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
+const THEME_KEY = "kaimono-clock-theme";
+const sessionPill = document.querySelector("#sessionPill");
+
+function setupThemeControls() {
+  const theme = localStorage.getItem(THEME_KEY) || "cool";
+  document.documentElement.dataset.theme = theme;
+  document.querySelectorAll("[data-theme-select]").forEach((select) => {
+    select.value = theme;
+    select.addEventListener("change", () => {
+      localStorage.setItem(THEME_KEY, select.value);
+      document.documentElement.dataset.theme = select.value;
+      document.querySelectorAll("[data-theme-select]").forEach((other) => {
+        other.value = select.value;
+      });
+    });
+  });
+}
+
+function setupMobileMenu() {
+  const nav = document.querySelector("#experienceNav");
+  const toggle = document.querySelector("#menuToggle");
+  if (!nav || !toggle) return;
+  const setOpen = (open) => {
+    nav.classList.toggle("menu-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  };
+  toggle.addEventListener("click", () => setOpen(!nav.classList.contains("menu-open")));
+  nav.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => setOpen(false));
+  });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setOpen(false);
+  });
+}
+
+function maskEmail(email) {
+  const [local, domain] = String(email || "").split("@");
+  if (!local || !domain) return "";
+  const maskedLocal = local.length <= 2
+    ? `${local[0] || ""}**${local.slice(-1) || ""}`
+    : `${local[0]}**${local.slice(-1)}`;
+  return `${maskedLocal}@${domain}`;
+}
+
+setupThemeControls();
+setupMobileMenu();
+
+const yen = new Intl.NumberFormat("ja-JP", {
+  style: "currency",
+  currency: "JPY",
+  maximumFractionDigits: 0
+});
+
+const legacyBudget = Number(localStorage.getItem("monthMateBudget")) || 50000;
+const state = {
+  viewDate: new Date(),
+  selectedDate: null,
+  expenses: loadJson("monthMateExpenses", []),
+  incomes: loadJson("monthMateIncomes", []),
+  discounts: [],
+  monthlyBudgets: loadJson("monthMateMonthlyBudgets", {}),
+  categoryBudgets: normalizeCategoryBudgets(loadJson("monthMateCategoryBudgets", {})),
+  activeView: new URLSearchParams(location.search).get("view") === "report" ? "reportView" : "calendarView"
+};
+
+const els = {
+  budget: document.querySelector("#monthlyBudget"),
+  spent: document.querySelector("#spentTotal"),
+  incomeTotal: document.querySelector("#incomeTotal"),
+  remaining: document.querySelector("#remainingBudget"),
+  remainingTile: document.querySelector(".remaining"),
+  tabs: document.querySelectorAll(".tab-button"),
+  views: document.querySelectorAll(".view-page"),
+  month: document.querySelector("#currentMonth"),
+  grid: document.querySelector("#calendarGrid"),
+  form: document.querySelector("#expenseForm"),
+  date: document.querySelector("#expenseDate"),
+  category: document.querySelector("#expenseCategory"),
+  title: document.querySelector("#expenseTitle"),
+  amount: document.querySelector("#expenseAmount"),
+  incomeForm: document.querySelector("#incomeForm"),
+  incomeDate: document.querySelector("#incomeDate"),
+  incomeCategory: document.querySelector("#incomeCategory"),
+  incomeTitle: document.querySelector("#incomeTitle"),
+  incomeAmount: document.querySelector("#incomeAmount"),
+  modal: document.querySelector("#entryModal"),
+  modalTitle: document.querySelector("#modalTitle"),
+  modalTabs: document.querySelectorAll(".modal-tab"),
+  modalPanels: document.querySelectorAll(".modal-form"),
+  modalDayList: document.querySelector("#modalDayList"),
+  closeModal: document.querySelector("#closeModal"),
+  summary: document.querySelector("#categorySummary"),
+  budgetAlert: document.querySelector("#categoryBudgetAlert"),
+  globalBudgetAlert: document.querySelector("#globalBudgetAlert"),
+  count: document.querySelector("#entryCount"),
+  list: document.querySelector("#expenseList"),
+  incomeList: document.querySelector("#incomeList"),
+  ledgerTitle: document.querySelector("#ledgerTitle"),
+  emptyTemplate: document.querySelector("#emptyTemplate"),
+  monthlyChart: document.querySelector("#monthlyChart"),
+  currentSaving: document.querySelector("#currentSaving"),
+  totalSaving: document.querySelector("#totalSaving"),
+  savingFlow: document.querySelector("#savingFlow"),
+  ranking: document.querySelector("#categoryRanking")
+};
+
+init();
+
+function init() {
+  renderSessionPill();
+  els.category.innerHTML = categories
+    .map((category) => `<option value="${category.id}">${category.label}</option>`)
+    .join("");
+
+  document.querySelector("#prevMonth").addEventListener("click", () => moveMonth(-1));
+  document.querySelector("#nextMonth").addEventListener("click", () => moveMonth(1));
+  els.budget.addEventListener("input", updateBudget);
+  els.form.addEventListener("submit", addExpense);
+  els.incomeForm.addEventListener("submit", addIncome);
+  els.closeModal.addEventListener("click", closeEntryModal);
+  els.modal.addEventListener("click", (event) => {
+    if (event.target === els.modal) closeEntryModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.modal.hidden) closeEntryModal();
+  });
+  els.modalTabs.forEach((tab) => {
+    tab.addEventListener("click", () => setEntryTab(tab.dataset.entryTab));
+  });
+  els.tabs.forEach((tab) => {
+    tab.addEventListener("click", () => setView(tab.dataset.view));
+  });
+
+  setView(state.activeView, false);
+  render();
+  const entryDate = new URLSearchParams(location.search).get("entry");
+  if (entryDate) openEntryModal(entryDate);
+}
+
+function renderSessionPill() {
+  if (!sessionPill) return;
+  try {
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    sessionPill.textContent = session?.user?.email ? `ログイン中: ${maskEmail(session.user.email)}` : "未ログイン";
+  } catch {
+    sessionPill.textContent = "未ログイン";
+  }
+}
+
+function loadJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function currentUserId() {
+  try {
+    return JSON.parse(localStorage.getItem(SESSION_KEY) || "null")?.user?.id || "";
+  } catch {
+    return "";
+  }
+}
+
+function loadDiscountCache() {
+  const userId = currentUserId();
+  if (!userId) return [];
+  try {
+    const notes = JSON.parse(localStorage.getItem(`${DISCOUNT_CACHE_KEY_PREFIX}:${userId}`) || "{}");
+    return Object.entries(notes || {}).flatMap(([storeId, items]) => {
+      return (Array.isArray(items) ? items : []).map((item) => ({ ...item, storeId }));
+    });
+  } catch {
+    return [];
+  }
+}
+
+function normalizeCategoryBudgets(value) {
+  const keys = Object.keys(value || {});
+  if (keys.some((key) => key.includes("-"))) return value || {};
+
+  const currentKey = monthKey(new Date());
+  return keys.length > 0 ? { [currentKey]: value } : {};
+}
+
+function saveExpenses() {
+  localStorage.setItem("monthMateExpenses", JSON.stringify(state.expenses));
+}
+
+function saveIncomes() {
+  localStorage.setItem("monthMateIncomes", JSON.stringify(state.incomes));
+}
+
+function saveMonthlyBudgets() {
+  localStorage.setItem("monthMateMonthlyBudgets", JSON.stringify(state.monthlyBudgets));
+}
+
+function saveCategoryBudgets() {
+  localStorage.setItem("monthMateCategoryBudgets", JSON.stringify(state.categoryBudgets));
+}
+
+function currentBudget() {
+  return budgetForMonth(state.viewDate.getFullYear(), state.viewDate.getMonth());
+}
+
+function budgetForMonth(year, month) {
+  return Number(state.monthlyBudgets[monthKey(new Date(year, month, 1))]) || legacyBudget;
+}
+
+function currentCategoryBudgets() {
+  const key = monthKey(state.viewDate);
+  state.categoryBudgets[key] ||= {};
+  return state.categoryBudgets[key];
+}
+
+function updateBudget() {
+  state.monthlyBudgets[monthKey(state.viewDate)] = Math.max(0, Number(els.budget.value) || 0);
+  saveMonthlyBudgets();
+  localStorage.setItem("monthMateBudget", String(state.monthlyBudgets[monthKey(state.viewDate)]));
+  render();
+}
+
+function updateCategoryBudget(categoryId, value) {
+  const budgets = currentCategoryBudgets();
+  const amount = Math.max(0, Number(value) || 0);
+  if (amount === 0) {
+    delete budgets[categoryId];
+  } else {
+    budgets[categoryId] = amount;
+  }
+  saveCategoryBudgets();
+  renderSummary();
+  renderReports();
+}
+
+function addExpense(event) {
+  event.preventDefault();
+
+  const item = {
+    id: crypto.randomUUID(),
+    date: els.date.value,
+    category: els.category.value,
+    title: els.title.value.trim(),
+    amount: Math.max(0, Number(els.amount.value) || 0)
+  };
+
+  if (!item.date || !item.title || item.amount <= 0) return;
+
+  state.expenses.push(item);
+  state.viewDate = dateFromInput(item.date);
+  state.selectedDate = item.date;
+  saveExpenses();
+  els.form.reset();
+  els.date.value = item.date;
+  render();
+  renderModalDayList();
+}
+
+function addIncome(event) {
+  event.preventDefault();
+
+  const item = {
+    id: crypto.randomUUID(),
+    date: els.incomeDate.value,
+    category: els.incomeCategory.value,
+    title: els.incomeTitle.value.trim(),
+    amount: Math.max(0, Number(els.incomeAmount.value) || 0)
+  };
+
+  if (!item.date || !item.title || item.amount <= 0) return;
+
+  state.incomes.push(item);
+  state.viewDate = dateFromInput(item.date);
+  state.selectedDate = item.date;
+  saveIncomes();
+  els.incomeForm.reset();
+  els.incomeDate.value = item.date;
+  render();
+  renderModalDayList();
+}
+
+function deleteExpense(id) {
+  state.expenses = state.expenses.filter((expense) => expense.id !== id);
+  saveExpenses();
+  render();
+}
+
+function deleteIncome(id) {
+  state.incomes = state.incomes.filter((income) => income.id !== id);
+  saveIncomes();
+  render();
+}
+
+function moveMonth(offset) {
+  state.viewDate = new Date(
+    state.viewDate.getFullYear(),
+    state.viewDate.getMonth() + offset,
+    1
+  );
+  state.selectedDate = null;
+  closeEntryModal();
+  render();
+}
+
+function openEntryModal(dateKey) {
+  state.selectedDate = dateKey;
+  els.date.value = dateKey;
+  els.incomeDate.value = dateKey;
+  els.modalTitle.textContent = `${formatLongDate(dateKey)}の入力`;
+  els.modal.hidden = false;
+  setEntryTab("expense");
+  renderCalendar();
+  renderModalDayList();
+  setTimeout(() => els.title.focus(), 0);
+}
+
+function closeEntryModal() {
+  els.modal.hidden = true;
+}
+
+function setEntryTab(tabId) {
+  els.modalTabs.forEach((tab) => {
+    tab.classList.toggle("is-active", tab.dataset.entryTab === tabId);
+  });
+  els.modalPanels.forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.entryPanel === tabId);
+  });
+}
+
+function setView(viewId, updateHash = true) {
+  state.activeView = viewId;
+  els.tabs.forEach((tab) => {
+    tab.classList.toggle("is-active", tab.dataset.view === viewId);
+  });
+  els.views.forEach((view) => {
+    view.classList.toggle("is-active", view.id === viewId);
+  });
+  if (updateHash) {
+    const url = viewId === "reportView" ? `${location.pathname}?view=report` : location.pathname;
+    history.replaceState(null, "", url);
+  }
+  renderReports();
+}
+
+function render() {
+  state.discounts = loadDiscountCache();
+  els.budget.value = currentBudget();
+  renderCalendar();
+  renderTotals();
+  renderSummary();
+  renderList();
+  renderIncomeList();
+  renderReports();
+}
+
+function renderCalendar() {
+  const year = state.viewDate.getFullYear();
+  const month = state.viewDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = `${year}年${month + 1}月`;
+  const todayKey = toDateInput(new Date());
+
+  els.month.textContent = monthLabel;
+  els.grid.innerHTML = "";
+
+  for (let i = 0; i < firstDay; i += 1) {
+    const empty = document.createElement("div");
+    empty.className = "day-cell empty";
+    els.grid.append(empty);
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateKey = toDateInput(new Date(year, month, day));
+    const dayExpenses = expensesForDate(dateKey);
+    const dayIncomes = incomesForDate(dateKey);
+    const dayDiscounts = discountsForDate(dateKey);
+    const total = sum(dayExpenses);
+    const income = sum(dayIncomes);
+    const discountLabel = dayDiscounts.length
+      ? `買い時 ${dayDiscounts[0].name || "商品名なし"}${dayDiscounts.length > 1 ? ` +${dayDiscounts.length - 1}` : ""}`
+      : "";
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "day-cell";
+    if (dateKey === todayKey) cell.classList.add("is-today");
+    if (dateKey === state.selectedDate) cell.classList.add("is-selected");
+    cell.setAttribute("aria-label", `${month + 1}月${day}日 支出${yen.format(total)} 収入${yen.format(income)}`);
+    cell.innerHTML = `
+      <span class="day-number">${day}</span>
+      <span class="category-dots">${categoryDots(dayExpenses)}${income > 0 ? '<span class="dot income-dot"></span>' : ""}</span>
+      <span class="discount-chip">${escapeHtml(discountLabel)}</span>
+      <span class="day-total">${total > 0 ? yen.format(total) : ""}</span>
+      <span class="day-income">${income > 0 ? `+${yen.format(income)}` : ""}</span>
+    `;
+    cell.addEventListener("click", () => openEntryModal(dateKey));
+    els.grid.append(cell);
+  }
+}
+
+function renderTotals() {
+  const spent = sum(currentMonthExpenses());
+  const income = sum(currentMonthIncomes());
+  const remaining = currentBudget() - spent;
+  els.spent.textContent = yen.format(spent);
+  els.incomeTotal.textContent = yen.format(income);
+  els.remaining.textContent = yen.format(remaining);
+  els.remainingTile.classList.toggle("is-over", remaining < 0);
+}
+
+function renderSummary() {
+  const monthExpenses = currentMonthExpenses();
+  const budgets = currentCategoryBudgets();
+  const total = Math.max(sum(monthExpenses), 1);
+  const categoryBudgetTotal = categories.reduce((amount, category) => {
+    return amount + (Number(budgets[category.id]) || 0);
+  }, 0);
+  const budgetOverflow = categoryBudgetTotal - currentBudget();
+
+  els.count.textContent = `${monthExpenses.length}件`;
+  els.summary.innerHTML = "";
+  const overflowMessage = budgetOverflow > 0
+    ? `ジャンル別予算の合計が月予算を ${yen.format(budgetOverflow)} 超えています。`
+    : "";
+  els.budgetAlert.hidden = budgetOverflow <= 0;
+  els.globalBudgetAlert.hidden = budgetOverflow <= 0;
+  els.budgetAlert.textContent = overflowMessage;
+  els.globalBudgetAlert.textContent = overflowMessage;
+
+  categories.forEach((category) => {
+    const categoryTotal = sum(monthExpenses.filter((item) => item.category === category.id));
+    const categoryBudget = Number(budgets[category.id]) || 0;
+    const basis = Math.max(categoryBudget, total, 1);
+    const width = Math.min(100, Math.round((categoryTotal / basis) * 100));
+    const remaining = categoryBudget - categoryTotal;
+    const row = document.createElement("div");
+    row.className = "summary-row category-budget-row";
+    row.innerHTML = `
+      <span class="summary-label">${category.label}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${width}%; background:${category.color}"></span></span>
+      <strong>${yen.format(categoryTotal)}</strong>
+      <label class="category-budget-input">
+        予算
+        <input type="number" inputmode="numeric" min="0" step="100" value="${categoryBudget || ""}" placeholder="0">
+      </label>
+      <span class="category-budget-status ${categoryBudget > 0 && remaining < 0 ? "is-over" : ""}">
+        ${categoryBudget > 0 ? `残り ${yen.format(remaining)}` : "未設定"}
+      </span>
+    `;
+    row.querySelector("input").addEventListener("change", (event) => {
+      updateCategoryBudget(category.id, event.target.value);
+    });
+    els.summary.append(row);
+  });
+}
+
+function renderList() {
+  const sorted = [...currentMonthExpenses()].sort((a, b) => b.date.localeCompare(a.date));
+  els.ledgerTitle.textContent = "今月の明細";
+  els.list.innerHTML = "";
+
+  if (sorted.length === 0) {
+    const empty = els.emptyTemplate.content.cloneNode(true);
+    empty.querySelector("p").textContent = "この月の支出はまだありません。";
+    els.list.append(empty);
+    return;
+  }
+
+  sorted.forEach((expense) => {
+    const category = categories.find((item) => item.id === expense.category) || categories.at(-1);
+    els.list.append(createRecordRow(expense, category, "expense"));
+  });
+}
+
+function renderIncomeList() {
+  const sorted = [...currentMonthIncomes()].sort((a, b) => b.date.localeCompare(a.date));
+  els.incomeList.innerHTML = "";
+
+  if (sorted.length === 0) {
+    const empty = els.emptyTemplate.content.cloneNode(true);
+    empty.querySelector("p").textContent = "この月の収入はまだありません。";
+    els.incomeList.append(empty);
+    return;
+  }
+
+  sorted.forEach((income) => {
+    const category = incomeCategories.find((item) => item.id === income.category) || incomeCategories[0];
+    els.incomeList.append(createRecordRow(income, category, "income"));
+  });
+}
+
+function renderModalDayList() {
+  if (!state.selectedDate) return;
+  const dayExpenses = expensesForDate(state.selectedDate).map((item) => ({ ...item, type: "expense" }));
+  const dayIncomes = incomesForDate(state.selectedDate).map((item) => ({ ...item, type: "income" }));
+  const dayDiscounts = discountsForDate(state.selectedDate).map((item) => ({ ...item, type: "discount" }));
+  const items = [...dayDiscounts, ...dayExpenses, ...dayIncomes].sort((a, b) => String(b.id).localeCompare(String(a.id)));
+  els.modalDayList.innerHTML = "";
+
+  if (items.length === 0) {
+    const empty = els.emptyTemplate.content.cloneNode(true);
+    empty.querySelector("p").textContent = "この日の記録はまだありません。";
+    els.modalDayList.append(empty);
+    return;
+  }
+
+  items.forEach((item) => {
+    if (item.type === "discount") {
+      els.modalDayList.append(createDiscountRow(item));
+      return;
+    }
+    const category = item.type === "income"
+      ? incomeCategories.find((categoryItem) => categoryItem.id === item.category) || incomeCategories[0]
+      : categories.find((categoryItem) => categoryItem.id === item.category) || categories.at(-1);
+    els.modalDayList.append(createRecordRow(item, category, item.type, true));
+  });
+}
+
+function createDiscountRow(item) {
+  const row = document.createElement("article");
+  row.className = "expense-item compact-record discount-record";
+  const storeLabel = item.storeLabel || item.storeName || "ラベル未設定";
+  row.innerHTML = `
+    <span class="date-pill">買い時</span>
+    <div class="expense-main">
+      <strong>${escapeHtml(item.name || "商品名なし")}</strong>
+      <small class="record-subline">${escapeHtml(storeLabel)}</small>
+      <span class="category-pill" style="background:#38bdf8">${escapeHtml(item.storeName || "店舗名なし")}</span>
+    </div>
+    <strong class="expense-amount">${yen.format(Number(item.price || 0))}</strong>
+  `;
+  return row;
+}
+
+function createRecordRow(item, category, type, compact = false) {
+  const row = document.createElement("article");
+  row.className = `expense-item ${type === "income" ? "income-item" : ""} ${compact ? "compact-record" : ""}`;
+  row.innerHTML = `
+    <span class="date-pill">${compact ? (type === "income" ? "収入" : "支出") : formatShortDate(item.date)}</span>
+    <div class="expense-main">
+      <strong>${escapeHtml(item.title)}</strong>
+      <span class="category-pill" style="background:${category.color}">${category.label}</span>
+    </div>
+    <strong class="expense-amount">${type === "income" ? "+" : ""}${yen.format(item.amount)}</strong>
+    <button class="delete-button" type="button" aria-label="${escapeHtml(item.title)}を削除">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
+      </svg>
+    </button>
+  `;
+  row.querySelector("button").addEventListener("click", () => {
+    if (type === "income") {
+      deleteIncome(item.id);
+    } else {
+      deleteExpense(item.id);
+    }
+    if (!els.modal.hidden) renderModalDayList();
+  });
+  return row;
+}
+
+function renderReports() {
+  renderMonthlyChart();
+  renderSavingFlow();
+  renderRanking();
+}
+
+function renderMonthlyChart() {
+  const months = lastMonths(6);
+  const maxValue = Math.max(
+    ...months.map((month) => budgetForMonth(month.year, month.month)),
+    ...months.map((month) => sum(expensesForMonth(month.year, month.month))),
+    1
+  );
+  els.monthlyChart.innerHTML = months
+    .map((month) => {
+      const budget = budgetForMonth(month.year, month.month);
+      const spent = sum(expensesForMonth(month.year, month.month));
+      const budgetHeight = Math.max(4, Math.round((budget / maxValue) * 100));
+      const spentHeight = Math.max(spent > 0 ? 4 : 0, Math.round((spent / maxValue) * 100));
+      const remaining = budget - spent;
+      return `
+        <div class="month-bar">
+          <div class="bar-pair" aria-label="${month.label} 予算${yen.format(budget)} 支出${yen.format(spent)}">
+            <span class="budget-bar" style="height:${budgetHeight}%"></span>
+            <span class="spent-bar ${remaining < 0 ? "is-over" : ""}" style="height:${spentHeight}%"></span>
+          </div>
+          <strong>${month.label}</strong>
+          <span>${yen.format(spent)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderSavingFlow() {
+  const months = lastMonths(6);
+  const flows = months.map((month) => {
+    const spent = sum(expensesForMonth(month.year, month.month));
+    const income = sum(incomesForMonth(month.year, month.month));
+    return {
+      ...month,
+      value: income - spent
+    };
+  });
+  const current = flows.at(-1)?.value || 0;
+  const total = flows.reduce((amount, month) => amount + month.value, 0);
+  const maxAbs = Math.max(...flows.map((month) => Math.abs(month.value)), 1);
+
+  els.currentSaving.textContent = yen.format(current);
+  els.totalSaving.textContent = yen.format(total);
+  els.savingFlow.innerHTML = flows
+    .map((month) => {
+      const width = Math.max(6, Math.round((Math.abs(month.value) / maxAbs) * 100));
+      const type = month.value >= 0 ? "plus" : "minus";
+      return `
+        <div class="saving-row">
+          <span>${month.label}</span>
+          <div class="saving-track">
+            <span class="saving-fill ${type}" style="width:${width}%"></span>
+          </div>
+          <strong>${yen.format(month.value)}</strong>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderRanking() {
+  const monthExpenses = currentMonthExpenses();
+  const budgets = currentCategoryBudgets();
+  const ranking = categories
+    .map((category) => ({
+      ...category,
+      spent: sum(monthExpenses.filter((expense) => expense.category === category.id)),
+      budget: Number(budgets[category.id]) || 0
+    }))
+    .sort((a, b) => b.spent - a.spent);
+  const maxSpent = Math.max(...ranking.map((item) => item.spent), 1);
+
+  els.ranking.innerHTML = ranking
+    .map((item, index) => {
+      const width = Math.round((item.spent / maxSpent) * 100);
+      const budgetText = item.budget > 0 ? ` / 予算 ${yen.format(item.budget)}` : "";
+      return `
+        <div class="ranking-row">
+          <span class="rank-badge">${index + 1}</span>
+          <div class="ranking-main">
+            <div>
+              <strong>${item.label}</strong>
+              <span>${yen.format(item.spent)}${budgetText}</span>
+            </div>
+            <span class="bar-track"><span class="bar-fill" style="width:${width}%; background:${item.color}"></span></span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function currentMonthExpenses() {
+  return expensesForMonth(state.viewDate.getFullYear(), state.viewDate.getMonth());
+}
+
+function currentMonthIncomes() {
+  return incomesForMonth(state.viewDate.getFullYear(), state.viewDate.getMonth());
+}
+
+function expensesForMonth(year, month) {
+  return state.expenses.filter((expense) => {
+    const date = dateFromInput(expense.date);
+    return date.getFullYear() === year && date.getMonth() === month;
+  });
+}
+
+function incomesForMonth(year, month) {
+  return state.incomes.filter((income) => {
+    const date = dateFromInput(income.date);
+    return date.getFullYear() === year && date.getMonth() === month;
+  });
+}
+
+function expensesForDate(dateKey) {
+  return state.expenses.filter((expense) => expense.date === dateKey);
+}
+
+function incomesForDate(dateKey) {
+  return state.incomes.filter((income) => income.date === dateKey);
+}
+
+function discountsForDate(dateKey) {
+  const date = dateFromInput(dateKey);
+  return state.discounts.filter((discount) => {
+    if (discount.saleMode === "weekly") {
+      return Number(discount.saleWeekday) === date.getDay();
+    }
+    if (discount.saleMode === "monthly") {
+      return Number(discount.saleMonthDay) === date.getDate();
+    }
+    return discount.saleDate === dateKey;
+  });
+}
+
+function sum(items) {
+  return items.reduce((total, item) => total + Number(item.amount || 0), 0);
+}
+
+function categoryDots(items) {
+  return [...new Set(items.map((item) => item.category))]
+    .slice(0, 5)
+    .map((id) => {
+      const category = categories.find((item) => item.id === id) || categories.at(-1);
+      return `<span class="dot" style="background:${category.color}"></span>`;
+    })
+    .join("");
+}
+
+function lastMonths(count) {
+  const months = [];
+  const base = new Date(state.viewDate.getFullYear(), state.viewDate.getMonth(), 1);
+  for (let index = count - 1; index >= 0; index -= 1) {
+    const date = new Date(base.getFullYear(), base.getMonth() - index, 1);
+    months.push({
+      year: date.getFullYear(),
+      month: date.getMonth(),
+      label: `${date.getMonth() + 1}月`
+    });
+  }
+  return months;
+}
+
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateFromInput(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatShortDate(value) {
+  const date = dateFromInput(value);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function formatLongDate(value) {
+  const date = dateFromInput(value);
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+    </script>
+  </body>
+</html>

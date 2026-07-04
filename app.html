@@ -1,0 +1,3166 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Kaimono Clock | 学生のための買い時メモアプリ</title>
+    <meta
+      name="description"
+      content="バイト代や仕送りをムダ買いで減らさない。現在地の近くにあるスーパーとドラッグストアを取得し、店舗ごとに品物の価格とセール日を保存できる学生向けアプリ。"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17211f;
+        --muted: #63716e;
+        --paper: #f6faf7;
+        --surface: #ffffff;
+        --surface-soft: #f9fbfa;
+        --line: #dce6e1;
+        --mint: #16a985;
+        --mint-dark: #08755f;
+        --sky: #2c7be5;
+        --coral: #ff765d;
+        --lemon: #f4c542;
+        --navy: #17213c;
+        --shadow: 0 18px 46px rgba(23, 33, 60, 0.12);
+        font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background:
+          linear-gradient(180deg, rgba(248, 251, 247, 0.8), rgba(248, 251, 247, 0.97)),
+          url("https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=2000&q=78") center /
+            cover fixed;
+        overflow-x: hidden;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .app {
+        width: min(1180px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 10px 0 30px;
+      }
+
+      .hero,
+      .status,
+      .auth-panel,
+      .location-panel,
+      .discount-overview,
+      .stores,
+      .workspace,
+      .metric-card,
+      .note-card {
+        border: 1px solid rgba(220, 230, 225, 0.9);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .hero {
+        min-height: auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+        gap: 14px;
+        align-items: center;
+        padding: 14px;
+      }
+
+      .hero > div {
+        min-width: 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--mint-dark);
+        font-weight: 900;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        color: #fff;
+        background: linear-gradient(140deg, var(--mint), var(--sky));
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 10px 0 0;
+        font-size: clamp(1.55rem, 4vw, 2.5rem);
+        line-height: 1.15;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+      }
+
+      h1 span {
+        display: block;
+      }
+
+      .lead {
+        max-width: 720px;
+        display: none;
+        margin-bottom: 0;
+        color: #34443f;
+        line-height: 1.85;
+        overflow-wrap: anywhere;
+      }
+
+      .lead span {
+        display: block;
+      }
+
+      .proof-list {
+        display: none;
+        align-items: stretch;
+        gap: 10px;
+        margin: 18px 0 0;
+        padding: 0;
+      }
+
+      .proof-list div {
+        min-width: 132px;
+        padding: 12px;
+        border: 1px solid rgba(220, 230, 225, 0.9);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.76);
+      }
+
+      .proof-list dt {
+        color: var(--mint-dark);
+        font-size: 1.35rem;
+        font-weight: 950;
+      }
+
+      .proof-list dd {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 850;
+      }
+
+      .hero-controls {
+        min-width: min(100%, 360px);
+        display: grid;
+        gap: 10px;
+      }
+
+      .control-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      select,
+      input,
+      textarea {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--ink);
+        padding: 0 12px;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 80px;
+        padding-top: 10px;
+        resize: vertical;
+      }
+
+      select:focus,
+      input:focus,
+      textarea:focus {
+        border-color: var(--mint);
+        box-shadow: 0 0 0 3px rgba(22, 169, 133, 0.14);
+      }
+
+      .btn {
+        min-height: 44px;
+        display: grid;
+        place-items: center;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 0 14px;
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        color: #fff;
+        background: var(--mint-dark);
+      }
+
+      .btn-primary:hover {
+        background: #075f50;
+      }
+
+      .btn-ghost {
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.86);
+        border-color: var(--line);
+      }
+
+      .status {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 14px 0;
+        padding: 13px 16px;
+        color: var(--muted);
+      }
+
+      .status-message {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .auth-panel {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        width: 100%;
+        grid-template-columns: minmax(210px, 1fr) minmax(150px, 195px) minmax(320px, 1.2fr) auto;
+        gap: 12px;
+        align-items: center;
+        margin: 0 0 12px;
+        padding: 12px;
+      }
+
+      .auth-copy {
+        display: none;
+        gap: 4px;
+      }
+
+      .auth-copy h2 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+
+      .auth-copy p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 750;
+        line-height: 1.55;
+      }
+
+      .auth-form {
+        display: grid;
+        grid-template-columns: minmax(150px, 1fr) minmax(120px, 0.8fr) auto auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .auth-form label {
+        gap: 0;
+        color: transparent;
+        font-size: 0;
+      }
+
+      .auth-form input {
+        color: var(--ink);
+        font-size: 0.95rem;
+      }
+
+      .auth-session {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-weight: 900;
+      }
+
+      .auth-panel.signed-in .auth-form {
+        display: none;
+      }
+
+      .auth-panel.signed-in .auth-session {
+        display: flex;
+      }
+
+      .auth-user {
+        color: #d85e49;
+      }
+
+      .experience-brand,
+      .experience-links {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .experience-brand strong {
+        overflow-wrap: anywhere;
+      }
+
+      .experience-link {
+        min-height: 42px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: var(--ink);
+        background: var(--surface);
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .experience-link.primary {
+        color: #fff;
+        background: linear-gradient(135deg, var(--mint-dark), var(--sky));
+        border-color: transparent;
+      }
+
+      .mobile-menu-btn {
+        display: none;
+      }
+
+      .location-panel,
+      .discount-overview {
+        display: grid;
+        gap: 16px;
+        margin-bottom: 14px;
+        padding: 18px;
+      }
+
+      .hidden-panel,
+      .discount-overview.hidden-panel,
+      .main-grid.hidden-panel {
+        display: none;
+      }
+
+      .location-panel {
+        border-top: 4px solid var(--sky);
+      }
+
+      .discount-overview {
+        border-top: 4px solid var(--lemon);
+      }
+
+      .location-form {
+        display: grid;
+        grid-template-columns: minmax(140px, 1fr) minmax(110px, 0.85fr) minmax(110px, 0.85fr) auto auto;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .saved-location-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+      }
+
+      .saved-location-card {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--surface);
+      }
+
+      .saved-location-card strong,
+      .discount-main strong {
+        overflow-wrap: anywhere;
+      }
+
+      .saved-location-actions {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+      }
+
+      .discount-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .discount-filter {
+        display: grid;
+        grid-template-columns: minmax(150px, 280px) 1fr;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .share-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--ink);
+        font-size: 0.9rem;
+        font-weight: 850;
+      }
+
+      .share-toggle input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--mint-dark);
+      }
+
+      .discount-row {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(170px, 1.1fr) minmax(130px, 0.85fr) minmax(88px, 0.5fr) minmax(120px, 0.75fr);
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--surface);
+      }
+
+      .discount-main,
+      .discount-sub {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+
+      .discount-row span,
+      .discount-row small {
+        overflow-wrap: anywhere;
+      }
+
+      .store-label-pill {
+        width: fit-content;
+        max-width: 100%;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 9px;
+        color: var(--mint-dark);
+        background: var(--surface-soft);
+        font-size: 0.78rem;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+      }
+
+      .shared-pill {
+        width: fit-content;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 9px;
+        color: #0f4d46;
+        background: #dff7ef;
+        font-size: 0.76rem;
+        font-weight: 900;
+      }
+
+      .label-edit-form {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .label-edit-form input {
+        min-height: 36px;
+        font-size: 0.88rem;
+      }
+
+      .label-edit-form button {
+        min-height: 36px;
+        padding: 0 10px;
+        font-size: 0.84rem;
+      }
+
+      .discount-price {
+        color: var(--coral);
+        font-weight: 950;
+        white-space: nowrap;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 10px;
+        border-radius: 50%;
+        background: #98a29f;
+      }
+
+      .dot.loading {
+        background: var(--lemon);
+      }
+
+      .dot.ready {
+        background: var(--mint);
+      }
+
+      .dot.error {
+        background: var(--coral);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .metric-card {
+        min-height: 96px;
+        padding: 16px;
+      }
+
+      .metric-card span {
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 850;
+      }
+
+      .metric-card strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--mint-dark);
+        font-size: 1.65rem;
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: minmax(290px, 380px) 1fr;
+        gap: 14px;
+      }
+
+      .view-switch {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0 0 10px;
+        padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.86);
+      }
+
+      .view-tab {
+        min-height: 40px;
+        border: 0;
+        border-radius: 8px;
+        color: var(--muted);
+        background: transparent;
+        font-weight: 950;
+      }
+
+      .view-tab.active {
+        color: #fff;
+        background: var(--mint-dark);
+      }
+
+      .stores,
+      .workspace {
+        min-height: 640px;
+      }
+
+      .stores {
+        padding: 18px;
+      }
+
+      .panel-head,
+      .detail-head,
+      .note-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .panel-head h2,
+      .detail-head h2 {
+        margin-bottom: 4px;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 8px;
+        margin: 14px 0;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
+      .chip {
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface-soft);
+        color: var(--muted);
+        padding: 0 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .chip.active {
+        color: var(--mint-dark);
+        border-color: rgba(22, 169, 133, 0.5);
+        background: #e5f8f2;
+      }
+
+      .store-list {
+        display: grid;
+        gap: 10px;
+        max-height: 532px;
+        overflow: auto;
+        padding-right: 3px;
+      }
+
+      .store-card {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 13px;
+        text-align: left;
+      }
+
+      .store-card:hover,
+      .store-card.active {
+        border-color: var(--mint);
+        box-shadow: 0 10px 22px rgba(22, 169, 133, 0.13);
+      }
+
+      .store-card strong {
+        display: block;
+        margin: 8px 0 4px;
+        font-size: 1.02rem;
+      }
+
+      .store-card small,
+      .muted {
+        color: var(--muted);
+      }
+
+      .type-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        border-radius: 999px;
+        padding: 0 10px;
+        color: var(--mint-dark);
+        background: #e5f8f2;
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .type-pill.drugstore {
+        color: #245b9e;
+        background: #eaf3ff;
+      }
+
+      .workspace {
+        padding: 22px;
+      }
+
+      .empty {
+        min-height: 580px;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .empty div {
+        max-width: 430px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .detail-head {
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .detail-head h2 {
+        font-size: clamp(1.55rem, 3vw, 2.4rem);
+        letter-spacing: 0;
+      }
+
+      .item-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        align-items: end;
+        margin: 18px 0;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface-soft);
+      }
+
+      .sale-field {
+        min-width: 0;
+        display: grid;
+        gap: 6px;
+        grid-column: span 2;
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+
+      .sale-field legend {
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 800;
+        padding: 0;
+      }
+
+      .sale-options {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .schedule-label {
+        display: grid;
+        gap: 5px;
+      }
+
+      .schedule-label span {
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 850;
+      }
+
+      .schedule-field.hidden {
+        display: none;
+      }
+
+      .schedule-label.hidden {
+        display: none;
+      }
+
+      .notes {
+        display: grid;
+        gap: 10px;
+      }
+
+      .note-card {
+        padding: 14px;
+        box-shadow: none;
+      }
+
+      .note-head h3 {
+        margin-bottom: 5px;
+      }
+
+      .price {
+        color: var(--coral);
+        font-size: 1.35rem;
+        font-weight: 950;
+        white-space: nowrap;
+      }
+
+      .note-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .note-meta span {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #fff5d7;
+        color: #8b650d;
+        padding: 0 10px;
+        font-size: 0.84rem;
+        font-weight: 850;
+      }
+
+      .delete-btn {
+        min-height: 34px;
+        border: 1px solid #ffd6cc;
+        border-radius: 8px;
+        background: #fff4f1;
+        color: #b7442d;
+        font-weight: 900;
+      }
+
+      .blank-row {
+        padding: 28px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        text-align: center;
+        background: rgba(255, 255, 255, 0.65);
+      }
+
+      @media (max-width: 980px) {
+        .hero,
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .stores,
+        .workspace {
+          min-height: auto;
+        }
+
+        .store-list {
+          max-height: 360px;
+        }
+
+        .item-form {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .item-form button {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .mobile-menu-btn {
+          position: sticky;
+          top: 8px;
+          z-index: 35;
+          display: grid;
+          width: 44px;
+          height: 44px;
+          place-items: center;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          color: var(--ink);
+          background: var(--surface);
+          box-shadow: var(--shadow);
+          font-size: 1.35rem;
+          font-weight: 950;
+        }
+
+        .auth-panel {
+          position: fixed;
+          inset: 0 auto 0 0;
+          z-index: 40;
+          width: min(86vw, 340px);
+          height: 100dvh;
+          overflow: auto;
+          grid-template-columns: 1fr;
+          align-content: start;
+          margin: 0;
+          padding: 16px;
+          border-radius: 0 8px 8px 0;
+          transform: translateX(-105%);
+          transition: transform 180ms ease;
+        }
+
+        .auth-panel.menu-open,
+        .auth-panel:focus-within {
+          transform: translateX(0);
+        }
+
+        .auth-panel.smart-hidden,
+        .auth-panel.smart-visible {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .auth-form,
+        .auth-session,
+        .experience-links {
+          grid-column: auto;
+        }
+
+        .auth-form,
+        .experience-links,
+        .auth-session {
+          display: grid;
+          grid-template-columns: 1fr;
+          justify-content: stretch;
+        }
+
+        .auth-panel.signed-in .auth-session {
+          display: grid;
+        }
+
+        .experience-link,
+        .auth-form button,
+        .auth-session button {
+          width: 100%;
+        }
+
+        .app {
+          width: min(100% - 18px, 1180px);
+          padding-top: 9px;
+        }
+
+        .hero,
+        .stores,
+        .workspace {
+          padding: 14px;
+        }
+
+        .control-row,
+        .summary-grid,
+        .location-form,
+        .discount-row,
+        .item-form {
+          grid-template-columns: 1fr;
+        }
+
+        .discount-filter,
+        .label-edit-form,
+        .sale-field {
+          grid-template-columns: 1fr;
+          grid-column: auto;
+        }
+
+        .status,
+        .panel-head,
+        .detail-head {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .summary-grid {
+          gap: 8px;
+        }
+
+        h1 {
+          font-size: 1.74rem;
+          line-height: 1.18;
+          max-width: calc(100vw - 74px);
+          word-break: break-all;
+        }
+
+        .lead {
+          max-width: calc(100vw - 74px);
+          font-size: 0.96rem;
+        }
+
+        .hero-controls {
+          max-width: calc(100vw - 46px);
+        }
+
+        .proof-list {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+      }
+      .back-link {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(23, 33, 60, 0.08);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #243834;
+        padding: 0 12px;
+        font-size: 0.88rem;
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      .student-modes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .student-modes span {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(23, 33, 60, 0.08);
+        border-radius: 8px;
+        background: #fff7ed;
+        color: #753b25;
+        padding: 0 10px;
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      body {
+        background:
+          linear-gradient(135deg, rgba(255, 246, 232, 0.9) 0%, rgba(237, 250, 245, 0.92) 44%, rgba(238, 246, 255, 0.94) 100%),
+          url("https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=2200&q=78") center / cover fixed;
+      }
+
+      .app {
+        padding-top: 18px;
+      }
+
+      .hero,
+      .status,
+      .auth-panel,
+      .stores,
+      .workspace,
+      .metric-card,
+      .note-card {
+        border-color: rgba(23, 33, 60, 0.08);
+        background: rgba(255, 255, 255, 0.93);
+        box-shadow: 0 14px 34px rgba(20, 44, 44, 0.08);
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        align-items: center;
+        grid-template-columns: minmax(0, 0.95fr) minmax(310px, 0.45fr);
+      }
+
+      .hero-controls {
+        align-self: center;
+        padding: 18px;
+        border: 1px solid rgba(23, 33, 60, 0.08);
+        border-top: 4px solid var(--coral);
+        border-radius: 8px;
+        background: rgba(249, 251, 250, 0.94);
+        box-shadow: 0 14px 34px rgba(20, 44, 44, 0.08);
+      }
+
+      .brand {
+        color: #d85e49;
+      }
+
+      .brand-mark {
+        background: linear-gradient(140deg, var(--mint), var(--coral));
+      }
+
+      h1 {
+        color: #142c2c;
+      }
+
+      .lead {
+        color: #263936;
+        font-weight: 700;
+      }
+
+      .proof-list div,
+      .metric-card {
+        background: rgba(255, 255, 255, 0.86);
+      }
+
+      .proof-list dt,
+      .metric-card strong {
+        color: #142c2c;
+      }
+
+      .btn-primary {
+        background: #142c2c;
+        box-shadow: 0 14px 30px rgba(20, 44, 44, 0.18);
+      }
+
+      .btn-primary:hover {
+        background: #0f2424;
+      }
+
+      .btn-ghost,
+      .chip {
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .chip.active,
+      .type-pill {
+        background: #fff7ed;
+        color: #753b25;
+      }
+
+      .stores,
+      .workspace {
+        border-top: 4px solid var(--mint);
+      }
+
+      .workspace {
+        border-top-color: var(--coral);
+      }
+
+      @media (max-width: 980px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .auth-panel,
+        .auth-form {
+          grid-template-columns: 1fr;
+        }
+
+        .auth-session {
+          justify-content: flex-start;
+          flex-wrap: wrap;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .student-modes {
+          display: none;
+        }
+
+        .student-modes span {
+          justify-content: center;
+          text-align: center;
+          white-space: normal;
+        }
+
+        .app {
+          padding-top: 6px;
+        }
+
+        .auth-panel {
+          top: 6px;
+          padding: 8px;
+        }
+
+        .auth-form {
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+        }
+
+        .auth-form label {
+          min-width: 0;
+        }
+
+        .auth-form button {
+          min-height: 38px;
+        }
+
+        .hero {
+          padding: 10px;
+          gap: 10px;
+        }
+
+        .brand {
+          width: 100%;
+          flex-wrap: wrap;
+        }
+
+        h1 {
+          max-width: 100%;
+          margin: 8px 0 0;
+          font-size: 1.16rem;
+          line-height: 1.35;
+          word-break: normal;
+        }
+
+        .hero-controls {
+          padding: 10px;
+          max-width: 100%;
+        }
+
+        .location-panel,
+        .discount-overview,
+        .stores,
+        .workspace {
+          padding: 12px;
+        }
+      }
+      :root {
+        color-scheme: dark;
+        --ink: #e7eef6;
+        --muted: #9baabd;
+        --paper: #07111c;
+        --surface: #101b28;
+        --surface-soft: #0c1622;
+        --line: #253548;
+        --mint: #2dd4bf;
+        --mint-dark: #0f766e;
+        --sky: #60a5fa;
+        --coral: #38bdf8;
+        --lemon: #818cf8;
+        --navy: #050b13;
+        --shadow: 0 22px 54px rgba(0, 0, 0, 0.38);
+      }
+
+      body {
+        color: var(--ink);
+        background:
+          linear-gradient(135deg, rgba(5, 11, 19, 0.96) 0%, rgba(11, 23, 35, 0.95) 48%, rgba(6, 12, 20, 0.98) 100%),
+          url("https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=2200&q=78") center / cover fixed;
+      }
+
+      .hero,
+      .status,
+      .auth-panel,
+      .location-panel,
+      .discount-overview,
+      .stores,
+      .workspace,
+      .metric-card,
+      .note-card,
+      .proof-list div,
+      .hero-controls,
+      .saved-location-card,
+      .discount-row,
+      .store-card,
+      .item-form,
+      .blank-row {
+        border-color: rgba(83, 104, 128, 0.62);
+        background: rgba(12, 22, 34, 0.9);
+        box-shadow: var(--shadow);
+      }
+
+      .brand,
+      h1,
+      .proof-list dt,
+      .metric-card strong {
+        color: #f2f7fb;
+      }
+
+      .brand-mark {
+        background: linear-gradient(140deg, #14b8a6, #2563eb);
+      }
+
+      .lead,
+      label,
+      .status,
+      .store-card small,
+      .muted,
+      .note-meta span,
+      .auth-copy p,
+      .proof-list dd {
+        color: var(--muted);
+      }
+
+      select,
+      input,
+      textarea {
+        color: var(--ink);
+        background: #0a1420;
+        border-color: var(--line);
+      }
+
+      select:focus,
+      input:focus,
+      textarea:focus {
+        border-color: var(--mint);
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.16);
+      }
+
+      .btn-primary,
+      .view-tab.active {
+        color: #f8fbff;
+        background: linear-gradient(135deg, #0f766e, #1d4ed8);
+        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.24);
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #0d9488, #2563eb);
+      }
+
+      .btn-ghost,
+      .chip,
+      .view-switch,
+      .back-link {
+        color: var(--ink);
+        background: rgba(15, 26, 38, 0.92);
+        border-color: var(--line);
+      }
+
+      .student-modes span,
+      .chip.active,
+      .type-pill,
+      .note-meta span {
+        color: #bfefff;
+        background: rgba(56, 189, 248, 0.13);
+        border-color: rgba(56, 189, 248, 0.28);
+      }
+
+      .type-pill.drugstore {
+        color: #c7d2fe;
+        background: rgba(129, 140, 248, 0.15);
+      }
+
+      .discount-price,
+      .price,
+      .auth-user {
+        color: #7dd3fc;
+      }
+
+      .delete-btn {
+        color: #fecaca;
+        background: rgba(127, 29, 29, 0.28);
+        border-color: rgba(248, 113, 113, 0.35);
+      }
+
+      .dot {
+        background: #526272;
+      }
+
+      .dot.ready {
+        background: var(--mint);
+      }
+
+      .dot.loading {
+        background: var(--lemon);
+      }
+
+      .dot.error {
+        background: #38bdf8;
+      }
+
+      .theme-control {
+        display: grid;
+        gap: 5px;
+        min-width: 150px;
+      }
+
+      .theme-control span {
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 900;
+      }
+
+      .theme-control select {
+        min-height: 38px;
+        font-weight: 900;
+      }
+
+      .auth-panel {
+        grid-template-columns: minmax(210px, 1fr) minmax(150px, 195px) minmax(320px, 1.2fr) auto;
+      }
+
+      .auth-panel .auth-copy {
+        grid-column: 1 / -1;
+      }
+
+      .auth-panel {
+        transition: transform 180ms ease, opacity 180ms ease;
+      }
+
+      .auth-panel.smart-hidden {
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(calc(-100% - 16px));
+      }
+
+      .auth-panel.smart-visible,
+      .auth-panel:focus-within {
+        pointer-events: auto;
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      html[data-theme="cool"] {
+        --ink: #dce7ef;
+        --muted: #9aa8b4;
+        --paper: #151b23;
+        --surface: #1b222c;
+        --surface-soft: #161d26;
+        --line: #303b47;
+        --mint: #9cdcfe;
+        --mint-dark: #2b6f88;
+        --sky: #75beff;
+        --coral: #86c5df;
+        --lemon: #7aa7c7;
+        --navy: #111820;
+        --shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+      }
+
+      html[data-theme="warm"] {
+        color-scheme: light;
+        --ink: #24332f;
+        --muted: #687a75;
+        --paper: #fff4e8;
+        --surface: #fffdf8;
+        --surface-soft: #fff7ef;
+        --line: #f0d7ca;
+        --mint: #35b6a6;
+        --mint-dark: #ff8a6b;
+        --sky: #ffb36b;
+        --coral: #ff8a6b;
+        --lemon: #ffd166;
+        --navy: #5b3a33;
+        --shadow: 0 18px 46px rgba(181, 94, 65, 0.14);
+      }
+
+      html[data-theme="white-blue"] {
+        color-scheme: light;
+        --ink: #213042;
+        --muted: #5b6f86;
+        --paper: #f5fbff;
+        --surface: #ffffff;
+        --surface-soft: #eef8ff;
+        --line: #b9d9f0;
+        --mint: #7ccdf7;
+        --mint-dark: #4aaee8;
+        --sky: #b8e6ff;
+        --coral: #70c8f5;
+        --lemon: #d8f2ff;
+        --navy: #17446b;
+        --shadow: 0 14px 34px rgba(46, 112, 158, 0.16);
+      }
+
+      html[data-theme="cool"] body {
+        background:
+          radial-gradient(circle at 18% 10%, rgba(156, 220, 254, 0.13), transparent 25rem),
+          linear-gradient(180deg, #1e1e1e 0%, #1f252d 48%, #181c22 100%);
+      }
+
+      html[data-theme="warm"] body {
+        background:
+          radial-gradient(circle at 18% 10%, rgba(255, 138, 107, 0.18), transparent 24rem),
+          radial-gradient(circle at 86% 12%, rgba(53, 182, 166, 0.14), transparent 22rem),
+          linear-gradient(135deg, rgba(255, 244, 232, 0.94) 0%, rgba(255, 253, 248, 0.96) 48%, rgba(245, 251, 248, 0.96) 100%),
+          url("https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=2200&q=78") center / cover fixed;
+      }
+
+      html[data-theme="white-blue"] body {
+        background:
+          radial-gradient(circle at 16% 8%, rgba(91, 184, 238, 0.2), transparent 22rem),
+          linear-gradient(180deg, #ffffff 0%, #eef8ff 50%, #f8fcff 100%);
+      }
+
+      html[data-theme] .hero,
+      html[data-theme] .status,
+      html[data-theme] .auth-panel,
+      html[data-theme] .location-panel,
+      html[data-theme] .discount-overview,
+      html[data-theme] .stores,
+      html[data-theme] .workspace,
+      html[data-theme] .metric-card,
+      html[data-theme] .note-card,
+      html[data-theme] .proof-list div,
+      html[data-theme] .hero-controls,
+      html[data-theme] .saved-location-card,
+      html[data-theme] .discount-row,
+      html[data-theme] .store-card,
+      html[data-theme] .item-form,
+      html[data-theme] .blank-row {
+        border-color: var(--line);
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+      }
+
+      html[data-theme] select,
+      html[data-theme] input,
+      html[data-theme] textarea,
+      html[data-theme] .btn-ghost,
+      html[data-theme] .chip,
+      html[data-theme] .view-switch,
+      html[data-theme] .back-link {
+        color: var(--ink);
+        background: var(--surface-soft);
+        border-color: var(--line);
+      }
+
+      html[data-theme] .btn-primary,
+      html[data-theme] .view-tab.active {
+        color: #fff;
+        background: linear-gradient(135deg, var(--mint-dark), var(--sky));
+        box-shadow: none;
+      }
+
+      html[data-theme="cool"] .brand-mark {
+        background: linear-gradient(140deg, #2b6f88, #4b8da8);
+      }
+
+      html[data-theme="white-blue"] .brand,
+      html[data-theme="white-blue"] h1,
+      html[data-theme="white-blue"] .proof-list dt,
+      html[data-theme="white-blue"] .metric-card strong {
+        color: #17446b;
+      }
+
+      html[data-theme="warm"] .brand,
+      html[data-theme="warm"] h1,
+      html[data-theme="warm"] .proof-list dt,
+      html[data-theme="warm"] .metric-card strong {
+        color: #24332f;
+      }
+
+      html[data-theme="warm"] .student-modes span,
+      html[data-theme="warm"] .chip.active,
+      html[data-theme="warm"] .type-pill,
+      html[data-theme="warm"] .note-meta span {
+        color: #8a4a2e;
+        background: #fff0e5;
+        border-color: rgba(255, 138, 107, 0.28);
+      }
+
+      html[data-theme="white-blue"] .student-modes span,
+      html[data-theme="white-blue"] .chip.active,
+      html[data-theme="white-blue"] .type-pill,
+      html[data-theme="white-blue"] .note-meta span {
+        color: #226fa4;
+        background: #e6f5ff;
+        border-color: #b9d9f0;
+      }
+
+      @media (max-width: 980px) {
+        .auth-panel {
+          grid-template-columns: minmax(170px, 1fr) minmax(130px, 170px);
+        }
+
+        .auth-form,
+        .auth-session,
+        .experience-links {
+          grid-column: 1 / -1;
+        }
+      }
+
+      html[data-theme="warm"] .brand-mark {
+        background: linear-gradient(140deg, #35b6a6, #ff8a6b 72%, #ffb36b);
+      }
+
+      html[data-theme="warm"] .btn-primary,
+      html[data-theme="warm"] .view-tab.active {
+        background: linear-gradient(135deg, #ff8a6b, #ffb36b);
+      }
+
+      html[data-theme="warm"] .store-card:hover,
+      html[data-theme="warm"] .store-card.active {
+        border-color: #ff9f7f;
+        box-shadow: 0 10px 22px rgba(255, 138, 107, 0.18);
+      }
+
+      html[data-theme="white-blue"] .btn-primary,
+      html[data-theme="white-blue"] .view-tab.active {
+        color: #12344f;
+        background: linear-gradient(135deg, #7ccdf7, #b8e6ff);
+        border-color: #9fd8f8;
+      }
+
+      html[data-theme="white-blue"] .brand-mark {
+        background: linear-gradient(140deg, #4aaee8, #91d9ff);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <button id="menuToggle" class="mobile-menu-btn" type="button" aria-controls="authPanel" aria-expanded="false">☰</button>
+      <section id="authPanel" class="auth-panel" aria-label="ログイン">
+        <div class="experience-brand">
+          <span class="brand-mark">K</span>
+          <strong>Kaimono Clock</strong>
+        </div>
+        <label class="theme-control">
+          <span>カラー</span>
+          <select data-theme-select aria-label="テーマカラー">
+            <option value="warm">暖色</option>
+            <option value="cool">寒色</option>
+            <option value="white-blue">白青</option>
+          </select>
+        </label>
+        <div class="auth-copy">
+          <h2>ログインして自分だけの割引メモを保存</h2>
+          <p>メールアドレスとパスワードでログインすると、保存した割引情報を自分用に管理し、必要なものだけ同じ店舗のユーザーへ共有できます。</p>
+        </div>
+        <form id="authForm" class="auth-form">
+          <label>
+            メールアドレス
+            <input id="authEmail" type="email" autocomplete="email" placeholder="student@example.com" required />
+          </label>
+          <label>
+            パスワード
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="8文字以上" required />
+          </label>
+          <button id="loginBtn" class="btn btn-primary" type="submit">ログイン</button>
+          <button id="signupBtn" class="btn btn-ghost" type="button">新規作成</button>
+        </form>
+        <div class="auth-session">
+          <span class="auth-user" id="authUser">未ログイン</span>
+          <button id="logoutBtn" class="btn btn-ghost" type="button">ログアウト</button>
+        </div>
+        <div class="experience-links">
+          <a class="experience-link" href="./index.html">体験トップ</a>
+          <a class="experience-link primary" href="./app.html" aria-current="page">買い時メモ</a>
+          <a class="experience-link" href="./household.html">家計簿体験</a>
+        </div>
+      </section>
+
+      <section class="hero" aria-label="Kaimono Clock">
+        <div>
+          <div class="brand">
+            <span class="brand-mark">K</span>
+            <span>Kaimono Clock</span>
+            <a class="back-link" href="./index.html">体験トップ</a>
+          </div>
+          <h1>
+            <span>近くの買い時を保存して、家計簿にも反映。</span>
+          </h1>
+        </div>
+        <div class="hero-controls">
+          <div class="control-row">
+            <label>
+              検索範囲
+              <select id="radiusSelect">
+                <option value="800">800m</option>
+                <option value="1200" selected>1.2km</option>
+                <option value="2000">2km</option>
+                <option value="3000">3km</option>
+              </select>
+            </label>
+            <label>
+              並び順
+              <select id="sortSelect">
+                <option value="distance" selected>近い順</option>
+                <option value="name">名前順</option>
+                <option value="notes">メモが多い順</option>
+              </select>
+            </label>
+          </div>
+          <button id="locateBtn" class="btn btn-primary" type="button">近くの買い時を探す</button>
+          <button id="savedLocationBtn" class="btn btn-ghost" type="button">登録地点から探す</button>
+          <a class="btn btn-ghost" href="./household.html">家計簿を体験する</a>
+          <button id="sampleBtn" class="btn btn-ghost" type="button">サンプルで試す</button>
+        </div>
+      </section>
+
+      <section class="status" aria-live="polite">
+        <div class="status-message">
+          <span id="statusDot" class="dot"></span>
+          <span id="statusText">位置情報を許可すると、近くのスーパーとドラッグストアから買い時候補を探します。</span>
+        </div>
+        <button id="clearAllBtn" class="btn btn-ghost" type="button">保存メモを全削除</button>
+      </section>
+
+      <section id="locationPanel" class="location-panel hidden-panel" aria-label="登録地点から探す">
+        <div class="panel-head">
+          <div>
+            <h2>登録地点からお店を探す</h2>
+            <p class="muted">自宅や学校などを保存して、出先からでもその周辺の買い時を確認できます。</p>
+          </div>
+        </div>
+        <form id="locationForm" class="location-form">
+          <label>
+            地点名
+            <input id="locationName" type="text" placeholder="自宅 / 学校" required />
+          </label>
+          <label>
+            緯度
+            <input id="locationLat" type="number" step="0.000001" placeholder="35.681236" required />
+          </label>
+          <label>
+            経度
+            <input id="locationLon" type="number" step="0.000001" placeholder="139.767125" required />
+          </label>
+          <button class="btn btn-primary" type="submit">地点を登録</button>
+          <button id="saveCurrentLocationBtn" class="btn btn-ghost" type="button">現在地を入力</button>
+        </form>
+        <div id="savedLocations" class="saved-location-list"></div>
+      </section>
+
+      <section class="summary-grid" aria-label="概要">
+        <div class="metric-card">
+          <span>近くのお店</span>
+          <strong id="metricStores">0</strong>
+        </div>
+        <div class="metric-card">
+          <span>買い時メモ</span>
+          <strong id="metricNotes">0</strong>
+        </div>
+        <div class="metric-card">
+          <span>最安価格</span>
+          <strong id="metricLowest">-</strong>
+        </div>
+      </section>
+
+      <div class="view-switch" role="tablist" aria-label="表示切り替え">
+        <button class="view-tab active" type="button" data-panel="stores">検索した店舗</button>
+        <button class="view-tab" type="button" data-panel="discounts">保存済み割引</button>
+      </div>
+
+      <section id="discountOverview" class="discount-overview hidden-panel" aria-label="保存済み割引一覧">
+        <div class="panel-head">
+          <div>
+            <h2>保存済み割引一覧</h2>
+          </div>
+        </div>
+        <div class="discount-filter">
+          <label>
+            <span class="muted">店舗ラベルで絞り込み</span>
+            <select id="discountLabelFilter">
+              <option value="all">すべての店舗ラベル</option>
+            </select>
+          </label>
+          <label class="share-toggle">
+            <input id="acceptSharedDiscounts" type="checkbox" />
+            他アカウントから共有された割引情報を受け取る
+          </label>
+        </div>
+        <div id="discountList" class="discount-list"></div>
+      </section>
+
+      <section id="mainGrid" class="main-grid">
+        <aside class="stores" aria-label="店舗一覧">
+          <div class="panel-head">
+            <div>
+              <h2>店舗</h2>
+              <p id="storeCount" class="muted">0件</p>
+            </div>
+          </div>
+          <div class="filter-row" role="tablist" aria-label="店舗種別">
+            <button class="chip active" type="button" data-filter="all">すべて</button>
+            <button class="chip" type="button" data-filter="supermarket">スーパー</button>
+            <button class="chip" type="button" data-filter="drugstore">ドラッグストア</button>
+          </div>
+          <div id="storeList" class="store-list"></div>
+        </aside>
+
+        <section class="workspace" aria-label="店舗別価格メモ">
+          <div id="emptyState" class="empty">
+            <div>
+              <h2>店舗を選択してください</h2>
+              <p>取得した店舗を選ぶと、その店舗に品物・価格・セール日を紐づけて保存できます。必要なものだけ、安い日に買うためのメモ帳です。</p>
+            </div>
+          </div>
+
+          <div id="detailView" class="hidden">
+            <div class="detail-head">
+              <div>
+                <span id="detailType" class="type-pill"></span>
+                <h2 id="detailName"></h2>
+                <p id="detailMeta" class="muted"></p>
+              </div>
+              <button id="mapBtn" class="btn btn-ghost" type="button">地図で開く</button>
+            </div>
+
+            <form id="itemForm" class="item-form">
+              <label>
+                店舗ラベル
+                <input id="storeLabel" type="text" placeholder="店名/検索元地点名" required />
+              </label>
+              <label>
+                品物
+                <input id="itemName" type="text" placeholder="例: 牛乳 1L" required />
+              </label>
+              <label>
+                価格
+                <input id="itemPrice" type="number" min="0" step="1" placeholder="198" required />
+              </label>
+              <fieldset class="sale-field">
+                <legend>セール設定</legend>
+                <div class="sale-options">
+                  <label class="schedule-label" for="saleMode">
+                    <span>周期</span>
+                    <select id="saleMode">
+                      <option value="once">単発</option>
+                      <option value="weekly">毎週</option>
+                      <option value="monthly">毎月</option>
+                    </select>
+                  </label>
+                  <label id="saleDateWrap" class="schedule-label" for="saleDate">
+                    <span>日付</span>
+                    <input id="saleDate" class="schedule-field" type="date" required />
+                  </label>
+                  <label id="saleWeekdayWrap" class="schedule-label hidden" for="saleWeekday">
+                    <span>曜日</span>
+                    <select id="saleWeekday" class="schedule-field">
+                      <option value="0">日曜日</option>
+                      <option value="1">月曜日</option>
+                      <option value="2">火曜日</option>
+                      <option value="3">水曜日</option>
+                      <option value="4">木曜日</option>
+                      <option value="5">金曜日</option>
+                      <option value="6">土曜日</option>
+                    </select>
+                  </label>
+                  <label id="saleMonthDayWrap" class="schedule-label hidden" for="saleMonthDay">
+                    <span>日にち</span>
+                    <input id="saleMonthDay" class="schedule-field" type="number" min="1" max="31" step="1" placeholder="例: 15" />
+                  </label>
+                </div>
+              </fieldset>
+              <label>
+                メモ
+                <input id="itemNote" type="text" placeholder="例: アプリ会員限定" />
+              </label>
+              <label class="share-toggle">
+                <input id="shareDiscount" type="checkbox" />
+                同じ店舗を登録している他ユーザーにも共有する
+              </label>
+              <button class="btn btn-primary" type="submit">追加</button>
+            </form>
+
+            <div id="notes" class="notes"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const SUPABASE_URL = "https://wnxphjricowzxbkwnmjx.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndueHBoanJpY293enhia3dubWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDk5ODMsImV4cCI6MjA5NzQ4NTk4M30.p6lu6gNpdkTg0Nvnxj05m2tHbYeihYP7jFPdIEWfSxo";
+      const SUPABASE_TABLE = "nsp_user_discounts";
+      const SUPABASE_LOCATIONS_TABLE = "nsp_user_locations";
+      const SUPABASE_SHARE_HIDES_TABLE = "nsp_user_discount_share_hides";
+      const SESSION_KEY = "kaimono-clock-session-v2";
+      const LOCATION_KEY_PREFIX = "kaimono-clock-locations-v2";
+      const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
+      const ACCEPT_SHARED_KEY_PREFIX = "kaimono-clock-accept-shared-v3";
+      const THEME_KEY = "kaimono-clock-theme";
+
+      function setupThemeControls() {
+        const theme = localStorage.getItem(THEME_KEY) || "cool";
+        document.documentElement.dataset.theme = theme;
+        document.querySelectorAll("[data-theme-select]").forEach((select) => {
+          select.value = theme;
+          select.addEventListener("change", () => {
+            localStorage.setItem(THEME_KEY, select.value);
+            document.documentElement.dataset.theme = select.value;
+            document.querySelectorAll("[data-theme-select]").forEach((other) => {
+              other.value = select.value;
+            });
+          });
+        });
+      }
+
+      function setupSmartAuthPanel() {
+        const panel = document.querySelector("#authPanel");
+        if (!panel) return;
+        const toggle = document.querySelector("#menuToggle");
+
+        const setOpen = (open) => {
+          panel.classList.toggle("menu-open", open);
+          toggle?.setAttribute("aria-expanded", String(open));
+        };
+
+        panel.classList.remove("smart-hidden", "smart-visible");
+        toggle?.addEventListener("click", () => setOpen(!panel.classList.contains("menu-open")));
+        panel.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", () => setOpen(false));
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") setOpen(false);
+        });
+      }
+
+      setupThemeControls();
+
+      const state = {
+        stores: [],
+        selectedStoreId: "",
+        filter: "all",
+        discountLabelFilter: "all",
+        userPosition: null,
+        notes: {},
+        hiddenSharedDiscountIds: new Set(),
+        acceptSharedDiscounts: false,
+        savedLocations: [],
+        activePanel: "stores",
+        session: null,
+        user: null,
+      };
+
+      const sampleStores = [
+        {
+          id: "sample-supermarket-1",
+          name: "駅前サンプルスーパー",
+          type: "supermarket",
+          lat: 35.681236,
+          lon: 139.767125,
+          distance: 180,
+          address: "駅前通り 1-2-3",
+        },
+        {
+          id: "sample-drugstore-1",
+          name: "サンプルドラッグ中央店",
+          type: "drugstore",
+          lat: 35.6821,
+          lon: 139.7654,
+          distance: 360,
+          address: "中央町 4-5",
+        },
+        {
+          id: "sample-supermarket-2",
+          name: "青葉マーケット",
+          type: "supermarket",
+          lat: 35.6798,
+          lon: 139.7649,
+          distance: 620,
+          address: "青葉町 2-8",
+        },
+      ];
+
+      const elements = {
+        radiusSelect: document.querySelector("#radiusSelect"),
+        sortSelect: document.querySelector("#sortSelect"),
+        locateBtn: document.querySelector("#locateBtn"),
+        savedLocationBtn: document.querySelector("#savedLocationBtn"),
+        sampleBtn: document.querySelector("#sampleBtn"),
+        clearAllBtn: document.querySelector("#clearAllBtn"),
+        statusDot: document.querySelector("#statusDot"),
+        statusText: document.querySelector("#statusText"),
+        metricStores: document.querySelector("#metricStores"),
+        metricNotes: document.querySelector("#metricNotes"),
+        metricLowest: document.querySelector("#metricLowest"),
+        storeCount: document.querySelector("#storeCount"),
+        storeList: document.querySelector("#storeList"),
+        chips: document.querySelectorAll(".chip"),
+        viewTabs: document.querySelectorAll(".view-tab"),
+        mainGrid: document.querySelector("#mainGrid"),
+        discountOverview: document.querySelector("#discountOverview"),
+        emptyState: document.querySelector("#emptyState"),
+        detailView: document.querySelector("#detailView"),
+        detailType: document.querySelector("#detailType"),
+        detailName: document.querySelector("#detailName"),
+        detailMeta: document.querySelector("#detailMeta"),
+        mapBtn: document.querySelector("#mapBtn"),
+        itemForm: document.querySelector("#itemForm"),
+        storeLabel: document.querySelector("#storeLabel"),
+        itemName: document.querySelector("#itemName"),
+        itemPrice: document.querySelector("#itemPrice"),
+        saleMode: document.querySelector("#saleMode"),
+        saleDateWrap: document.querySelector("#saleDateWrap"),
+        saleDate: document.querySelector("#saleDate"),
+        saleWeekdayWrap: document.querySelector("#saleWeekdayWrap"),
+        saleWeekday: document.querySelector("#saleWeekday"),
+        saleMonthDayWrap: document.querySelector("#saleMonthDayWrap"),
+        saleMonthDay: document.querySelector("#saleMonthDay"),
+        itemNote: document.querySelector("#itemNote"),
+        shareDiscount: document.querySelector("#shareDiscount"),
+        notes: document.querySelector("#notes"),
+        authPanel: document.querySelector("#authPanel"),
+        authForm: document.querySelector("#authForm"),
+        authEmail: document.querySelector("#authEmail"),
+        authPassword: document.querySelector("#authPassword"),
+        signupBtn: document.querySelector("#signupBtn"),
+        logoutBtn: document.querySelector("#logoutBtn"),
+        authUser: document.querySelector("#authUser"),
+        locationPanel: document.querySelector("#locationPanel"),
+        locationForm: document.querySelector("#locationForm"),
+        locationName: document.querySelector("#locationName"),
+        locationLat: document.querySelector("#locationLat"),
+        locationLon: document.querySelector("#locationLon"),
+        saveCurrentLocationBtn: document.querySelector("#saveCurrentLocationBtn"),
+        savedLocations: document.querySelector("#savedLocations"),
+        discountLabelFilter: document.querySelector("#discountLabelFilter"),
+        acceptSharedDiscounts: document.querySelector("#acceptSharedDiscounts"),
+        discountList: document.querySelector("#discountList"),
+      };
+
+      function setStatus(mode, message) {
+        elements.statusDot.className = `dot ${mode}`;
+        elements.statusText.textContent = message;
+      }
+
+      function loadNotes() {
+        return state.notes;
+      }
+
+      function hasSession() {
+        return Boolean(state.session?.access_token && state.user?.id);
+      }
+
+      function maskEmail(email) {
+        const [local, domain] = String(email || "").split("@");
+        if (!local || !domain) return "";
+        const maskedLocal = local.length <= 2
+          ? `${local[0] || ""}**${local.slice(-1) || ""}`
+          : `${local[0]}**${local.slice(-1)}`;
+        return `${maskedLocal}@${domain}`;
+      }
+
+      function locationStorageKey() {
+        return `${LOCATION_KEY_PREFIX}:${state.user?.id || "guest"}`;
+      }
+
+      function discountCacheKey() {
+        return `${DISCOUNT_CACHE_KEY_PREFIX}:${state.user?.id || "guest"}`;
+      }
+
+      function acceptSharedKey() {
+        return `${ACCEPT_SHARED_KEY_PREFIX}:${state.user?.id || "guest"}`;
+      }
+
+      function loadAcceptSharedPreference() {
+        state.acceptSharedDiscounts = hasSession() && localStorage.getItem(acceptSharedKey()) === "1";
+        if (elements.acceptSharedDiscounts) {
+          elements.acceptSharedDiscounts.checked = state.acceptSharedDiscounts;
+        }
+      }
+
+      function saveAcceptSharedPreference() {
+        if (!hasSession()) return;
+        localStorage.setItem(acceptSharedKey(), state.acceptSharedDiscounts ? "1" : "0");
+      }
+
+      function saveDiscountCache() {
+        if (!hasSession()) return;
+        localStorage.setItem(discountCacheKey(), JSON.stringify(state.notes));
+      }
+
+      function defaultStoreLabel(store, originLabel = state.userPosition?.label || "") {
+        const storeName = store?.name || store?.storeName || "店舗名なし";
+        const origin = originLabel || "検索元未設定";
+        return `${storeName}/${origin}`;
+      }
+
+      function labelForStore(store) {
+        const existing = (state.notes[store?.id] || []).find((note) => note.storeLabel && !note.isShared);
+        return existing?.storeLabel || defaultStoreLabel(store);
+      }
+
+      function updateLocalStoreLabel(storeId, storeLabel) {
+        const previousLabel = (state.notes[storeId] || []).find((note) => note.storeLabel && !note.isShared)?.storeLabel || "";
+        const allNotes = loadNotes();
+        allNotes[storeId] = (allNotes[storeId] || []).map((note) => ({
+          ...note,
+          storeLabel: note.isShared ? note.storeLabel : storeLabel,
+        }));
+        state.notes = allNotes;
+        if (state.discountLabelFilter === previousLabel) {
+          state.discountLabelFilter = storeLabel;
+        }
+        saveDiscountCache();
+      }
+
+      function syncStoreLabelInput() {
+        if (!elements.storeLabel) return;
+        const store = state.stores.find((item) => item.id === state.selectedStoreId);
+        elements.storeLabel.value = store ? labelForStore(store) : "";
+        elements.storeLabel.placeholder = store ? defaultStoreLabel(store) : "店名/検索元地点名";
+      }
+
+      function loadSavedLocations() {
+        if (!hasSession()) return [];
+        try {
+          const locations = JSON.parse(localStorage.getItem(locationStorageKey()) || "[]");
+          return Array.isArray(locations)
+            ? locations.filter((item) => item?.name && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lon)))
+            : [];
+        } catch {
+          localStorage.removeItem(locationStorageKey());
+          return [];
+        }
+      }
+
+      function saveSavedLocations() {
+        if (!hasSession()) return;
+        localStorage.setItem(locationStorageKey(), JSON.stringify(state.savedLocations));
+      }
+
+      function rowToLocation(row) {
+        return {
+          id: row.id,
+          name: row.label,
+          lat: Number(row.lat),
+          lon: Number(row.lon),
+          createdAt: row.created_at || "",
+        };
+      }
+
+      function locationToRow(location) {
+        return {
+          id: location.id,
+          user_id: state.user.id,
+          label: location.name,
+          lat: Number(location.lat),
+          lon: Number(location.lon),
+        };
+      }
+
+      function supabaseHeaders(extra = {}) {
+        const token = state.session?.access_token || SUPABASE_ANON_KEY;
+        return {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...extra,
+        };
+      }
+
+      function shouldRefreshSession() {
+        if (!state.session?.access_token) return false;
+        if (!state.session?.refresh_token) return false;
+        if (!state.session?.expires_at) return false;
+        return Math.floor(Date.now() / 1000) >= Number(state.session.expires_at) - 60;
+      }
+
+      async function refreshSession() {
+        if (!state.session?.refresh_token) {
+          saveSession(null);
+          throw new Error("Missing refresh token");
+        }
+        const data = await authRequest("token?grant_type=refresh_token", {
+          refresh_token: state.session.refresh_token,
+        });
+        saveSession(data);
+        return data;
+      }
+
+      async function ensureFreshSession() {
+        if (shouldRefreshSession()) {
+          await refreshSession();
+        }
+      }
+
+      async function supabaseRequest(path, options = {}) {
+        if (hasSession()) {
+          await ensureFreshSession();
+        }
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+          ...options,
+          headers: supabaseHeaders(options.headers || {}),
+        });
+        if (!response.ok) {
+          if (response.status === 401 && state.session?.refresh_token && !options.__retriedAfterRefresh) {
+            await refreshSession();
+            return supabaseRequest(path, { ...options, __retriedAfterRefresh: true });
+          }
+          const message = await response.text();
+          throw new Error(message || `Supabase request failed: ${response.status}`);
+        }
+        if (response.status === 204) return null;
+        return response.json();
+      }
+
+      async function authRequest(path, body) {
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error_description || data.msg || data.message || "Auth request failed");
+        }
+        return data;
+      }
+
+      function saveSession(session) {
+        state.session = session?.access_token ? session : null;
+        state.user = session?.user || null;
+        if (state.session) {
+          localStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
+        } else {
+          localStorage.removeItem(SESSION_KEY);
+        }
+        loadAcceptSharedPreference();
+        renderAuth();
+      }
+
+      function restoreSession() {
+        try {
+          const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+          if (session?.access_token && session?.user) {
+            state.session = session;
+            state.user = session.user;
+          }
+        } catch {
+          localStorage.removeItem(SESSION_KEY);
+        }
+        loadAcceptSharedPreference();
+        renderAuth();
+      }
+
+      function renderAuth() {
+        elements.authPanel.classList.toggle("signed-in", hasSession());
+        elements.authUser.textContent = hasSession() ? `ログイン中: ${maskEmail(state.user.email)}` : "未ログイン";
+        elements.itemForm.querySelector("button[type='submit']").disabled = !hasSession();
+        elements.clearAllBtn.disabled = !hasSession();
+        if (elements.acceptSharedDiscounts) {
+          elements.acceptSharedDiscounts.disabled = !hasSession();
+        }
+        elements.locationForm.querySelectorAll("input, button").forEach((control) => {
+          control.disabled = !hasSession();
+        });
+      }
+
+      async function signIn(email, password) {
+        const data = await authRequest("token?grant_type=password", { email, password });
+        saveSession(data);
+        await loadNotesFromSupabase();
+        await migrateLocalBackupIfEmpty();
+        await loadLocationsFromSupabase();
+        render();
+        setStatus("ready", "ログインしました。保存済みの割引情報を読み込みました。");
+      }
+
+      async function signUp(email, password) {
+        const data = await authRequest("signup", { email, password });
+        if (data.access_token) {
+          saveSession(data);
+          await loadNotesFromSupabase();
+          await migrateLocalBackupIfEmpty();
+          await loadLocationsFromSupabase();
+          render();
+          setStatus("ready", "アカウントを作成し、ログインしました。");
+          return;
+        }
+        setStatus("ready", "アカウントを作成しました。メール確認を無効にしている場合は、そのままログインできます。");
+      }
+
+      async function signOut() {
+        if (state.session?.access_token) {
+          await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${state.session.access_token}`,
+            },
+          }).catch(() => null);
+        }
+        saveSession(null);
+        state.notes = {};
+        state.hiddenSharedDiscountIds = new Set();
+        state.acceptSharedDiscounts = false;
+        state.savedLocations = [];
+        render();
+        setStatus("ready", "ログアウトしました。割引メモを使うにはログインしてください。");
+      }
+
+      function rowToNote(row, localStoreLabel = "") {
+        const isShared = row.user_id !== state.user?.id;
+        return {
+          id: row.id,
+          ownerId: row.user_id,
+          isShared,
+          storeName: row.store_name,
+          storeLabel: isShared
+            ? (localStoreLabel || row.store_name)
+            : (row.store_label || defaultStoreLabel({ name: row.store_name }, row.origin_label || "")),
+          originLabel: row.origin_label || "",
+          storeType: row.store_type,
+          name: row.item_name,
+          price: Number(row.price),
+          shareEnabled: Boolean(row.shared_enabled),
+          saleMode: row.sale_mode || "once",
+          saleDate: row.sale_date || "",
+          saleWeekday: row.sale_weekday == null ? "0" : String(row.sale_weekday),
+          saleMonthDay: row.sale_month_day == null ? "" : String(row.sale_month_day),
+          note: row.note || "",
+          createdAt: row.created_at ? new Date(row.created_at).toLocaleDateString("ja-JP") : "",
+        };
+      }
+
+      function noteToRow(storeId, note) {
+        return {
+          id: note.id,
+          user_id: state.user.id,
+          store_id: storeId,
+          store_name: note.storeName,
+          store_label: note.storeLabel || note.storeName,
+          origin_label: note.originLabel || null,
+          store_type: note.storeType,
+          item_name: note.name,
+          price: note.price,
+          sale_mode: note.saleMode || "once",
+          sale_date: note.saleMode === "once" && note.saleDate ? note.saleDate : null,
+          sale_weekday: note.saleMode === "weekly" ? Number(note.saleWeekday) : null,
+          sale_month_day: note.saleMode === "monthly" ? Number(note.saleMonthDay) : null,
+          shared_enabled: Boolean(note.shareEnabled),
+          note: note.note || null,
+        };
+      }
+
+      function noteToLegacyRow(storeId, note) {
+        const row = noteToRow(storeId, note);
+        delete row.store_label;
+        delete row.origin_label;
+        delete row.shared_enabled;
+        return row;
+      }
+
+      function groupRows(rows) {
+        const ownLabelByStore = new Map(
+          rows
+            .filter((row) => row.user_id === state.user?.id && row.store_label)
+            .map((row) => [row.store_id, row.store_label]),
+        );
+        return rows.reduce((grouped, row) => {
+          if (row.user_id !== state.user?.id && state.hiddenSharedDiscountIds.has(row.id)) return grouped;
+          grouped[row.store_id] = grouped[row.store_id] || [];
+          grouped[row.store_id].push(rowToNote(row, ownLabelByStore.get(row.store_id) || ""));
+          return grouped;
+        }, {});
+      }
+
+      function flattenNotes(notes) {
+        return Object.entries(notes).flatMap(([storeId, items]) => items.map((item) => noteToRow(storeId, item)));
+      }
+
+      async function loadNotesFromSupabase() {
+        if (!hasSession()) {
+          state.notes = {};
+          state.hiddenSharedDiscountIds = new Set();
+          setStatus("ready", "ログインすると、自分だけの割引情報を保存・表示できます。");
+          return;
+        }
+        await loadHiddenSharedDiscounts();
+        const query = state.acceptSharedDiscounts
+          ? `${SUPABASE_TABLE}?select=*&order=created_at.desc`
+          : `${SUPABASE_TABLE}?select=*&user_id=eq.${encodeURIComponent(state.user.id)}&order=created_at.desc`;
+        const rows = await supabaseRequest(query);
+        state.notes = groupRows(rows || []);
+        saveDiscountCache();
+        setStatus("ready", state.acceptSharedDiscounts
+          ? "Supabaseから保存済み・共有済みの割引情報を読み込みました。"
+          : "Supabaseから保存済みの割引情報を読み込みました。");
+      }
+
+      async function migrateLocalBackupIfEmpty() {
+        if (!hasSession()) return;
+        if (Object.values(state.notes).flat().length) return;
+        try {
+          const response = await fetch("./discounts.json", { cache: "no-store" });
+          if (!response.ok) return;
+          const backup = await response.json();
+          const rows = flattenNotes(backup);
+          if (!rows.length) return;
+          await supabaseRequest(SUPABASE_TABLE, {
+            method: "POST",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify(rows),
+          });
+          state.notes = backup;
+          saveDiscountCache();
+          setStatus("ready", "ローカルJSONの既存データをSupabaseへ移行しました。");
+        } catch {
+          setStatus("error", "Supabaseへの初回移行に失敗しました。テーブル作成SQLを確認してください。");
+        }
+      }
+
+      async function insertNoteToSupabase(storeId, note) {
+        try {
+          await supabaseRequest(SUPABASE_TABLE, {
+            method: "POST",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify(noteToRow(storeId, note)),
+          });
+          return true;
+        } catch (error) {
+          const message = String(error.message || "");
+          if (!message.includes("store_label") && !message.includes("shared_enabled")) throw error;
+          await supabaseRequest(SUPABASE_TABLE, {
+            method: "POST",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify(noteToLegacyRow(storeId, note)),
+          });
+          return false;
+        }
+      }
+
+      async function deleteNoteFromSupabase(noteId) {
+        await supabaseRequest(`${SUPABASE_TABLE}?id=eq.${encodeURIComponent(noteId)}`, {
+          method: "DELETE",
+          headers: { Prefer: "return=minimal" },
+        });
+      }
+
+      async function loadHiddenSharedDiscounts() {
+        state.hiddenSharedDiscountIds = new Set();
+        if (!hasSession()) return;
+        try {
+          const rows = await supabaseRequest(`${SUPABASE_SHARE_HIDES_TABLE}?select=discount_id`);
+          state.hiddenSharedDiscountIds = new Set((rows || []).map((row) => row.discount_id));
+        } catch {
+          state.hiddenSharedDiscountIds = new Set();
+        }
+      }
+
+      async function hideSharedDiscount(noteId) {
+        if (!hasSession()) return;
+        await supabaseRequest(SUPABASE_SHARE_HIDES_TABLE, {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            user_id: state.user.id,
+            discount_id: noteId,
+          }),
+        });
+        state.hiddenSharedDiscountIds.add(noteId);
+      }
+
+      async function updateStoreLabelInSupabase(storeId, storeLabel) {
+        try {
+          await supabaseRequest(`${SUPABASE_TABLE}?store_id=eq.${encodeURIComponent(storeId)}`, {
+            method: "PATCH",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({ store_label: storeLabel }),
+          });
+          return true;
+        } catch (error) {
+          if (String(error.message || "").includes("store_label")) return false;
+          throw error;
+        }
+      }
+
+      async function clearNotesFromSupabase() {
+        await supabaseRequest(`${SUPABASE_TABLE}?id=not.is.null`, {
+          method: "DELETE",
+          headers: { Prefer: "return=minimal" },
+        });
+      }
+
+      async function loadLocationsFromSupabase() {
+        if (!hasSession()) {
+          state.savedLocations = [];
+          return;
+        }
+
+        const localLocations = loadSavedLocations();
+        try {
+          const rows = await supabaseRequest(`${SUPABASE_LOCATIONS_TABLE}?select=*&order=created_at.desc`);
+          state.savedLocations = (rows || []).map(rowToLocation);
+          if (!state.savedLocations.length && localLocations.length) {
+            for (const location of localLocations) {
+              await insertLocationToSupabase(location);
+            }
+            state.savedLocations = localLocations;
+            setStatus("ready", "この端末の登録地点をSupabaseへ移行しました。");
+          }
+          saveSavedLocations();
+        } catch {
+          state.savedLocations = localLocations;
+          setStatus(
+            "error",
+            "登録地点をSupabaseから読み込めませんでした。supabase_user_locations_schema.sql を実行済みか確認してください。",
+          );
+        }
+      }
+
+      async function insertLocationToSupabase(location) {
+        await supabaseRequest(SUPABASE_LOCATIONS_TABLE, {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify(locationToRow(location)),
+        });
+      }
+
+      async function deleteLocationFromSupabase(locationId) {
+        await supabaseRequest(`${SUPABASE_LOCATIONS_TABLE}?id=eq.${encodeURIComponent(locationId)}`, {
+          method: "DELETE",
+          headers: { Prefer: "return=minimal" },
+        });
+      }
+
+      function notesFor(storeId) {
+        return loadNotes()[storeId] || [];
+      }
+
+      function typeLabel(type) {
+        return type === "drugstore" ? "ドラッグストア" : "スーパー";
+      }
+
+      function formatDistance(value) {
+        if (!Number.isFinite(value)) return "距離不明";
+        return value >= 1000 ? `${(value / 1000).toFixed(1)}km` : `${Math.round(value)}m`;
+      }
+
+      function describeSaleSchedule(note) {
+        const weekdays = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+        if (note.saleMode === "weekly") {
+          return `毎週${weekdays[Number(note.saleWeekday)] || "曜日未設定"}`;
+        }
+        if (note.saleMode === "monthly") {
+          return `毎月${note.saleMonthDay || "未設定"}日`;
+        }
+        return note.saleDate || "未設定";
+      }
+
+      function syncScheduleFields() {
+        const mode = elements.saleMode.value;
+        elements.saleDateWrap.classList.toggle("hidden", mode !== "once");
+        elements.saleWeekdayWrap.classList.toggle("hidden", mode !== "weekly");
+        elements.saleMonthDayWrap.classList.toggle("hidden", mode !== "monthly");
+        elements.saleDate.required = mode === "once";
+        elements.saleWeekday.required = mode === "weekly";
+        elements.saleMonthDay.required = mode === "monthly";
+      }
+
+      function distanceMeters(fromLat, fromLon, toLat, toLon) {
+        const earth = 6371000;
+        const rad = (deg) => (deg * Math.PI) / 180;
+        const dLat = rad(toLat - fromLat);
+        const dLon = rad(toLon - fromLon);
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(rad(fromLat)) * Math.cos(rad(toLat)) * Math.sin(dLon / 2) ** 2;
+        return earth * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function makeStoreId(element, storeType) {
+        return `${storeType}-${element.type}-${element.id}`;
+      }
+
+      function normalizeStore(element, lat, lon) {
+        const tags = element.tags || {};
+        const storeLat = element.lat || element.center?.lat;
+        const storeLon = element.lon || element.center?.lon;
+        if (!Number.isFinite(storeLat) || !Number.isFinite(storeLon)) return null;
+
+        const storeType = tags.shop === "chemist" || tags.amenity === "pharmacy" ? "drugstore" : "supermarket";
+        const address = [tags["addr:city"], tags["addr:neighbourhood"], tags["addr:street"], tags["addr:housenumber"]]
+          .filter(Boolean)
+          .join(" ");
+
+        return {
+          id: makeStoreId(element, storeType),
+          name: tags.name || tags.brand || "名称未登録の店舗",
+          type: storeType,
+          lat: storeLat,
+          lon: storeLon,
+          distance: distanceMeters(lat, lon, storeLat, storeLon),
+          address: address || tags["addr:full"] || "",
+        };
+      }
+
+      async function fetchNearbyStores(lat, lon, radius) {
+        const query = `
+          [out:json][timeout:25];
+          (
+            node["shop"="supermarket"](around:${radius},${lat},${lon});
+            way["shop"="supermarket"](around:${radius},${lat},${lon});
+            relation["shop"="supermarket"](around:${radius},${lat},${lon});
+            node["shop"="chemist"](around:${radius},${lat},${lon});
+            way["shop"="chemist"](around:${radius},${lat},${lon});
+            relation["shop"="chemist"](around:${radius},${lat},${lon});
+            node["amenity"="pharmacy"](around:${radius},${lat},${lon});
+            way["amenity"="pharmacy"](around:${radius},${lat},${lon});
+            relation["amenity"="pharmacy"](around:${radius},${lat},${lon});
+          );
+          out center tags;
+        `;
+
+        const response = await fetch("https://overpass-api.de/api/interpreter", {
+          method: "POST",
+          body: new URLSearchParams({ data: query }),
+        });
+
+        if (!response.ok) throw new Error("店舗取得APIが応答しませんでした。");
+
+        const data = await response.json();
+        const unique = new Map();
+        data.elements
+          .map((element) => normalizeStore(element, lat, lon))
+          .filter(Boolean)
+          .forEach((store) => unique.set(store.id, store));
+
+        return [...unique.values()].sort((a, b) => a.distance - b.distance);
+      }
+
+      function sortedStores(stores) {
+        const sort = elements.sortSelect.value;
+        return [...stores].sort((a, b) => {
+          if (sort === "name") return a.name.localeCompare(b.name, "ja");
+          if (sort === "notes") return notesFor(b.id).length - notesFor(a.id).length;
+          return a.distance - b.distance;
+        });
+      }
+
+      function visibleStores() {
+        const filtered = state.stores.filter((store) => state.filter === "all" || store.type === state.filter);
+        return sortedStores(filtered);
+      }
+
+      function updateMetrics() {
+        const notes = Object.values(loadNotes()).flat();
+        const prices = notes.map((note) => Number(note.price)).filter(Number.isFinite);
+        elements.metricStores.textContent = state.stores.length;
+        elements.metricNotes.textContent = notes.length;
+        elements.metricLowest.textContent = prices.length ? `¥${Math.min(...prices).toLocaleString("ja-JP")}` : "-";
+      }
+
+      function renderStores() {
+        const stores = visibleStores();
+        elements.storeCount.textContent = `${stores.length}件`;
+        elements.storeList.innerHTML = "";
+
+        if (!stores.length) {
+          elements.storeList.innerHTML = '<div class="blank-row">該当する店舗がありません。</div>';
+          updateMetrics();
+          return;
+        }
+
+        stores.forEach((store) => {
+          const card = document.createElement("button");
+          const noteCount = notesFor(store.id).length;
+          card.type = "button";
+          card.className = `store-card ${store.id === state.selectedStoreId ? "active" : ""}`;
+          card.innerHTML = `
+            <span class="type-pill ${store.type}">${typeLabel(store.type)}</span>
+            <strong>${escapeHtml(store.name)}</strong>
+            <small>${formatDistance(store.distance)}${store.address ? ` ・ ${escapeHtml(store.address)}` : ""}</small>
+            <small>${noteCount}件の価格メモ</small>
+          `;
+          card.addEventListener("click", () => {
+            state.selectedStoreId = store.id;
+            render();
+          });
+          elements.storeList.appendChild(card);
+        });
+
+        updateMetrics();
+      }
+
+      function renderDetail() {
+        const store = state.stores.find((item) => item.id === state.selectedStoreId);
+        syncStoreLabelInput();
+        if (!store) {
+          elements.emptyState.classList.remove("hidden");
+          elements.detailView.classList.add("hidden");
+          return;
+        }
+
+        elements.emptyState.classList.add("hidden");
+        elements.detailView.classList.remove("hidden");
+        elements.detailType.textContent = typeLabel(store.type);
+        elements.detailType.className = `type-pill ${store.type}`;
+        elements.detailName.textContent = store.name;
+        elements.detailMeta.textContent = `${formatDistance(store.distance)}${store.address ? ` ・ ${store.address}` : ""}`;
+        elements.mapBtn.onclick = () => {
+          window.open(`https://www.google.com/maps/search/?api=1&query=${store.lat},${store.lon}`, "_blank", "noopener");
+        };
+
+        const notes = notesFor(store.id);
+        elements.notes.innerHTML = "";
+
+        if (!notes.length) {
+          elements.notes.innerHTML = '<div class="blank-row">この店舗にはまだ価格メモがありません。</div>';
+          return;
+        }
+
+        notes.forEach((note) => {
+          const card = document.createElement("article");
+          card.className = "note-card";
+          const actionLabel = note.isShared ? "非表示" : "削除";
+          card.innerHTML = `
+            <div class="note-head">
+              <div>
+                <h3>${escapeHtml(note.name)}</h3>
+                <span class="store-label-pill">${escapeHtml(note.storeLabel || labelForStore(store))}</span>
+                ${note.isShared ? '<span class="shared-pill">共有情報</span>' : ""}
+                <p class="muted">${escapeHtml(note.note || "メモなし")}</p>
+              </div>
+              <div class="price">¥${Number(note.price).toLocaleString("ja-JP")}</div>
+            </div>
+            <div class="note-meta">
+              <span>セール: ${escapeHtml(describeSaleSchedule(note))}</span>
+              <span>登録: ${escapeHtml(note.createdAt)}</span>
+              <button class="delete-btn" type="button">${actionLabel}</button>
+            </div>
+          `;
+          card.querySelector(".delete-btn").addEventListener("click", async () => {
+            const allNotes = loadNotes();
+            allNotes[store.id] = notesFor(store.id).filter((item) => item.id !== note.id);
+            state.notes = allNotes;
+            saveDiscountCache();
+            render();
+            try {
+              if (note.isShared) {
+                await hideSharedDiscount(note.id);
+                setStatus("ready", "共有された割引情報を自分の画面だけで非表示にしました。");
+              } else {
+                await deleteNoteFromSupabase(note.id);
+                setStatus("ready", "Supabaseから割引情報を削除しました。");
+              }
+            } catch {
+              setStatus("error", note.isShared
+                ? "共有された割引情報を非表示にできませんでした。共有設定用SQLを確認してください。"
+                : "Supabaseからの削除に失敗しました。テーブル権限を確認してください。");
+            }
+          });
+          elements.notes.appendChild(card);
+        });
+      }
+
+      function renderSavedLocations() {
+        elements.savedLocations.innerHTML = "";
+
+        if (!hasSession()) {
+          elements.savedLocations.innerHTML = '<div class="blank-row">ログインすると、自宅や学校などの地点を保存できます。</div>';
+          return;
+        }
+
+        if (!state.savedLocations.length) {
+          elements.savedLocations.innerHTML = '<div class="blank-row">まだ登録地点がありません。緯度・経度を入力するか、現在地を入力して保存してください。</div>';
+          return;
+        }
+
+        state.savedLocations.forEach((location) => {
+          const card = document.createElement("article");
+          card.className = "saved-location-card";
+          card.innerHTML = `
+            <div>
+              <strong>${escapeHtml(location.name)}</strong>
+              <small class="muted">${Number(location.lat).toFixed(5)}, ${Number(location.lon).toFixed(5)}</small>
+            </div>
+            <div class="saved-location-actions">
+              <button class="btn btn-primary" type="button" data-action="search">この地点から探す</button>
+              <button class="delete-btn" type="button" data-action="delete">削除</button>
+            </div>
+          `;
+          card.querySelector('[data-action="search"]').addEventListener("click", () => {
+            searchFromPosition(Number(location.lat), Number(location.lon), location.name);
+          });
+          card.querySelector('[data-action="delete"]').addEventListener("click", async () => {
+            state.savedLocations = state.savedLocations.filter((item) => item.id !== location.id);
+            saveSavedLocations();
+            renderSavedLocations();
+            try {
+              await deleteLocationFromSupabase(location.id);
+              setStatus("ready", "登録地点を削除しました。");
+            } catch {
+              setStatus("error", "登録地点の削除をSupabaseへ反映できませんでした。SQLを確認してください。");
+            }
+          });
+          elements.savedLocations.appendChild(card);
+        });
+      }
+
+      function getDiscountRows() {
+        return Object.entries(loadNotes())
+          .flatMap(([storeId, notes]) => notes.map((note) => ({ storeId, ...note })))
+          .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""), "ja"));
+      }
+
+      function renderDiscountLabelFilter(rows) {
+        if (!elements.discountLabelFilter) return;
+        const labels = [...new Set(rows.map((note) => note.storeLabel || note.storeName).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "ja"));
+        const current = labels.includes(state.discountLabelFilter) ? state.discountLabelFilter : "all";
+        state.discountLabelFilter = current;
+        elements.discountLabelFilter.innerHTML = [
+          '<option value="all">すべての店舗ラベル</option>',
+          ...labels.map((label) => `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`),
+        ].join("");
+        elements.discountLabelFilter.value = current;
+      }
+
+      function renderDiscountList() {
+        elements.discountList.innerHTML = "";
+
+        if (!hasSession()) {
+          elements.discountList.innerHTML = '<div class="blank-row">ログインすると、自分が登録した割引情報を一覧で確認できます。</div>';
+          return;
+        }
+
+        const allRows = getDiscountRows();
+        renderDiscountLabelFilter(allRows);
+        const rows = state.discountLabelFilter === "all"
+          ? allRows
+          : allRows.filter((note) => (note.storeLabel || note.storeName) === state.discountLabelFilter);
+        if (!rows.length) {
+          elements.discountList.innerHTML = '<div class="blank-row">まだ割引情報がありません。店舗を選んで商品・価格・セール日を登録してください。</div>';
+          return;
+        }
+
+        rows.forEach((note) => {
+          const row = document.createElement("article");
+          row.className = "discount-row";
+          const labelEditor = note.isShared
+            ? '<span class="shared-pill">共有情報</span><button class="delete-btn" type="button" data-action="hide-shared">非表示</button>'
+            : `<form class="label-edit-form" data-store-id="${escapeHtml(note.storeId)}">
+                <input type="text" value="${escapeHtml(note.storeLabel || note.storeName || "")}" aria-label="店舗ラベル" required />
+                <button class="btn btn-ghost" type="submit">変更</button>
+              </form>`;
+          row.innerHTML = `
+            <div class="discount-main">
+              <small class="muted">店舗</small>
+              <strong>${escapeHtml(note.storeName || "店舗名なし")}</strong>
+              <span class="store-label-pill">${escapeHtml(note.storeLabel || note.storeName || "ラベル未設定")}</span>
+              ${labelEditor}
+            </div>
+            <div class="discount-sub">
+              <small class="muted">商品</small>
+              <span>${escapeHtml(note.name || "商品名なし")}</span>
+            </div>
+            <div class="discount-price">¥${Number(note.price || 0).toLocaleString("ja-JP")}</div>
+            <div class="discount-sub">
+              <small class="muted">買い時</small>
+              <span>${escapeHtml(describeSaleSchedule(note))}</span>
+              ${note.note ? `<small>${escapeHtml(note.note)}</small>` : ""}
+            </div>
+          `;
+          row.querySelector('[data-action="hide-shared"]')?.addEventListener("click", async () => {
+            const allNotes = loadNotes();
+            allNotes[note.storeId] = (allNotes[note.storeId] || []).filter((item) => item.id !== note.id);
+            state.notes = allNotes;
+            saveDiscountCache();
+            render();
+            try {
+              await hideSharedDiscount(note.id);
+              setStatus("ready", "共有された割引情報を自分の画面だけで非表示にしました。");
+            } catch {
+              setStatus("error", "共有された割引情報を非表示にできませんでした。共有設定用SQLを確認してください。");
+            }
+          });
+          row.querySelector(".label-edit-form")?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const storeId = form.dataset.storeId;
+            const input = form.querySelector("input");
+            const nextLabel = input.value.trim();
+            if (!storeId || !nextLabel) return;
+            updateLocalStoreLabel(storeId, nextLabel);
+            render();
+            try {
+              const persisted = await updateStoreLabelInSupabase(storeId, nextLabel);
+              setStatus(
+                persisted ? "ready" : "error",
+                persisted
+                  ? "同じ店舗の割引情報ラベルを更新しました。"
+                  : "画面上のラベルは更新しましたが、DB列が未作成のため永続保存されません。supabase_user_auth_schema.sqlを実行してください。",
+              );
+            } catch {
+              setStatus("error", "店舗ラベルをSupabaseへ保存できませんでした。");
+            }
+          });
+          elements.discountList.appendChild(row);
+        });
+      }
+
+      function renderActivePanel() {
+        elements.viewTabs.forEach((tab) => {
+          tab.classList.toggle("active", tab.dataset.panel === state.activePanel);
+        });
+        elements.mainGrid.classList.toggle("hidden-panel", state.activePanel !== "stores");
+        elements.discountOverview.classList.toggle("hidden-panel", state.activePanel !== "discounts");
+      }
+
+      async function searchFromPosition(lat, lon, label = "選択地点") {
+        const radius = Number(elements.radiusSelect.value);
+        state.userPosition = { lat, lon, label };
+        setStatus("loading", `${label}の周辺にあるスーパー・ドラッグストアを検索しています...`);
+
+        try {
+          state.stores = await fetchNearbyStores(lat, lon, radius);
+          state.selectedStoreId = state.stores[0]?.id || "";
+          state.activePanel = "stores";
+          setStatus(
+            state.stores.length ? "ready" : "error",
+            state.stores.length
+              ? `${label}から${formatDistance(radius)}以内で${state.stores.length}件見つかりました。`
+              : `${label}の周辺では店舗が見つかりませんでした。検索範囲を広げて再検索してください。`,
+          );
+          render();
+        } catch (error) {
+          setStatus("error", `${error.message} 時間をおいて再試行してください。`);
+        }
+      }
+
+      function render() {
+        renderStores();
+        renderDetail();
+        renderSavedLocations();
+        renderDiscountList();
+        renderActivePanel();
+      }
+
+      function useSample() {
+        state.stores = sampleStores;
+        state.selectedStoreId = sampleStores[0].id;
+        state.activePanel = "stores";
+        setStatus("ready", "サンプル店舗を表示しています。現在地取得で実データに切り替えできます。");
+        render();
+      }
+
+      elements.locateBtn.addEventListener("click", () => {
+        if (!navigator.geolocation) {
+          setStatus("error", "このブラウザは位置情報に対応していません。");
+          return;
+        }
+
+        setStatus("loading", "現在地を取得しています...");
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            await searchFromPosition(lat, lon, "現在地");
+          },
+          () => setStatus("error", "位置情報の取得が許可されませんでした。ブラウザの設定を確認してください。"),
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 },
+        );
+      });
+
+      elements.savedLocationBtn.addEventListener("click", () => {
+        elements.locationPanel.classList.remove("hidden-panel");
+        elements.locationPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        setStatus(
+          hasSession() ? "ready" : "error",
+          hasSession()
+            ? "登録地点を選ぶか、新しい地点を保存してください。"
+            : "登録地点を使うにはログインしてください。",
+        );
+      });
+
+      elements.sampleBtn.addEventListener("click", useSample);
+
+      elements.radiusSelect.addEventListener("change", () => {
+        if (state.userPosition) {
+          searchFromPosition(state.userPosition.lat, state.userPosition.lon, state.userPosition.label || "選択地点");
+        }
+      });
+
+      elements.sortSelect.addEventListener("change", render);
+      elements.saleMode.addEventListener("change", syncScheduleFields);
+
+      elements.chips.forEach((chip) => {
+        chip.addEventListener("click", () => {
+          elements.chips.forEach((item) => item.classList.remove("active"));
+          chip.classList.add("active");
+          state.filter = chip.dataset.filter;
+          renderStores();
+        });
+      });
+
+      elements.viewTabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          state.activePanel = tab.dataset.panel;
+          renderActivePanel();
+        });
+      });
+
+      elements.discountLabelFilter.addEventListener("change", () => {
+        state.discountLabelFilter = elements.discountLabelFilter.value;
+        renderDiscountList();
+      });
+
+      elements.acceptSharedDiscounts.addEventListener("change", async () => {
+        state.acceptSharedDiscounts = elements.acceptSharedDiscounts.checked;
+        saveAcceptSharedPreference();
+        try {
+          await loadNotesFromSupabase();
+          render();
+          setStatus("ready", state.acceptSharedDiscounts
+            ? "共有された割引情報を受け取る設定にしました。"
+            : "自分の割引情報だけを表示する設定にしました。");
+        } catch {
+          setStatus("error", "共有設定の反映に失敗しました。共有設定用SQLを確認してください。");
+        }
+      });
+
+      elements.authForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          await signIn(elements.authEmail.value.trim(), elements.authPassword.value);
+          elements.authPassword.value = "";
+        } catch {
+          setStatus("error", "ログインできませんでした。メールアドレスとパスワードを確認してください。");
+        }
+      });
+
+      elements.signupBtn.addEventListener("click", async () => {
+        try {
+          await signUp(elements.authEmail.value.trim(), elements.authPassword.value);
+          elements.authPassword.value = "";
+        } catch {
+          setStatus("error", "アカウント作成に失敗しました。SupabaseのAuth設定を確認してください。");
+        }
+      });
+
+      elements.logoutBtn.addEventListener("click", async () => {
+        await signOut();
+      });
+
+      elements.locationForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!hasSession()) {
+          setStatus("error", "登録地点を保存するにはログインしてください。");
+          return;
+        }
+
+        const name = elements.locationName.value.trim();
+        const lat = Number(elements.locationLat.value);
+        const lon = Number(elements.locationLon.value);
+        if (!name || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+          setStatus("error", "地点名、緯度、経度を確認してください。");
+          return;
+        }
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          setStatus("error", "緯度は-90から90、経度は-180から180の範囲で入力してください。");
+          return;
+        }
+
+        const replacedLocation = state.savedLocations.find((item) => item.name === name);
+        const nextLocation = {
+          id: crypto.randomUUID(),
+          name,
+          lat,
+          lon,
+        };
+        state.savedLocations = [
+          nextLocation,
+          ...state.savedLocations.filter((item) => item.name !== name),
+        ].slice(0, 8);
+        saveSavedLocations();
+        elements.locationForm.reset();
+        renderSavedLocations();
+        try {
+          if (replacedLocation) {
+            await deleteLocationFromSupabase(replacedLocation.id);
+          }
+          await insertLocationToSupabase(nextLocation);
+          setStatus("ready", `${name}を登録しました。別端末でも同じアカウントで表示されます。`);
+        } catch {
+          setStatus("error", "登録地点をSupabaseへ保存できませんでした。supabase_user_locations_schema.sql を実行してください。");
+        }
+      });
+
+      elements.saveCurrentLocationBtn.addEventListener("click", () => {
+        if (!hasSession()) {
+          setStatus("error", "現在地を登録地点に使うにはログインしてください。");
+          return;
+        }
+        if (!navigator.geolocation) {
+          setStatus("error", "このブラウザは位置情報に対応していません。");
+          return;
+        }
+
+        setStatus("loading", "現在地を取得しています...");
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            elements.locationLat.value = position.coords.latitude.toFixed(6);
+            elements.locationLon.value = position.coords.longitude.toFixed(6);
+            if (!elements.locationName.value.trim()) {
+              elements.locationName.value = "現在地";
+            }
+            setStatus("ready", "現在地を入力しました。地点名を調整して保存できます。");
+          },
+          () => setStatus("error", "位置情報の取得が許可されませんでした。ブラウザの設定を確認してください。"),
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 },
+        );
+      });
+
+      elements.itemForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!hasSession()) {
+          setStatus("error", "割引情報を保存するにはログインしてください。");
+          return;
+        }
+        const store = state.stores.find((item) => item.id === state.selectedStoreId);
+        if (!store) return;
+
+        const allNotes = loadNotes();
+        const newNote = {
+          id: crypto.randomUUID(),
+          storeName: store.name,
+          storeLabel: elements.storeLabel.value.trim() || defaultStoreLabel(store),
+          originLabel: state.userPosition?.label || "",
+          storeType: store.type,
+          name: elements.itemName.value.trim(),
+          price: Number(elements.itemPrice.value),
+          saleMode: elements.saleMode.value,
+          saleDate: elements.saleDate.value,
+          saleWeekday: elements.saleWeekday.value,
+          saleMonthDay: elements.saleMonthDay.value,
+          shareEnabled: elements.shareDiscount.checked,
+          note: elements.itemNote.value.trim(),
+          createdAt: new Date().toLocaleDateString("ja-JP"),
+        };
+        allNotes[store.id] = [
+          newNote,
+          ...(allNotes[store.id] || []),
+        ];
+        state.notes = allNotes;
+        saveDiscountCache();
+        elements.itemForm.reset();
+        syncScheduleFields();
+        render();
+        try {
+          const labelsPersisted = await insertNoteToSupabase(store.id, newNote);
+          setStatus(
+            labelsPersisted ? "ready" : "error",
+            labelsPersisted
+              ? "Supabaseへ割引情報を保存しました。"
+              : "割引情報は保存しましたが、店舗ラベル列が未作成のためラベルはDB保存されません。supabase_user_auth_schema.sqlを実行してください。",
+          );
+        } catch {
+          setStatus("error", "Supabaseへの保存に失敗しました。テーブル作成SQLとRLSポリシーを確認してください。");
+        }
+      });
+
+      elements.clearAllBtn.addEventListener("click", async () => {
+        if (!hasSession()) {
+          setStatus("error", "割引情報を削除するにはログインしてください。");
+          return;
+        }
+        state.notes = {};
+        saveDiscountCache();
+        render();
+        try {
+          await clearNotesFromSupabase();
+          setStatus("ready", "Supabase上の保存済み価格メモを全削除しました。");
+        } catch {
+          setStatus("error", "Supabaseの全削除に失敗しました。テーブル権限を確認してください。");
+        }
+      });
+
+      async function initializeApp() {
+        setupSmartAuthPanel();
+        restoreSession();
+        if (hasSession()) {
+          try {
+            await loadNotesFromSupabase();
+            await migrateLocalBackupIfEmpty();
+            await loadLocationsFromSupabase();
+          } catch {
+            state.notes = {};
+            setStatus("error", "Supabaseから読み込めませんでした。supabase_user_auth_schema.sql を実行済みか確認してください。");
+          }
+        } else {
+          state.notes = {};
+          setStatus("ready", "ログインすると、自分だけの割引情報を保存・表示できます。");
+        }
+        syncScheduleFields();
+        renderAuth();
+        render();
+      }
+
+      syncScheduleFields();
+      initializeApp();
+    </script>
+  </body>
+</html>

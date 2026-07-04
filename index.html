@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Kaimono Clock 体験トップ</title>
+    <style>
+      :root {
+        --ink: #12201f;
+        --muted: #5f6f6b;
+        --line: #dce6e4;
+        --mint: #1f8f8b;
+        --mint-dark: #142c2c;
+        --coral: #ff7a59;
+        --paper: #fffdf7;
+        --shadow: 0 18px 36px rgba(18, 32, 31, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        color: var(--ink);
+        font-family: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", Meiryo, sans-serif;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(255, 122, 89, 0.16), transparent 24rem),
+          radial-gradient(circle at 88% 8%, rgba(114, 183, 242, 0.18), transparent 22rem),
+          linear-gradient(180deg, #fff8df 0%, #f3fbf8 52%, #fffdf7 100%);
+      }
+
+      main {
+        width: min(820px, calc(100% - 28px));
+        display: grid;
+        gap: 18px;
+        padding: 18px;
+        border: 1px solid rgba(220, 230, 228, 0.95);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .top-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        font-weight: 900;
+      }
+
+      .logo {
+        display: grid;
+        flex: 0 0 48px;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        border-radius: 8px;
+        color: #fff;
+        background: linear-gradient(140deg, var(--mint), var(--coral));
+      }
+
+      .auth-box {
+        width: min(100%, 430px);
+        display: grid;
+        gap: 8px;
+        margin-left: auto;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 253, 247, 0.9);
+      }
+
+      .auth-status {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 900;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: #98a29f;
+      }
+
+      .dot.ready {
+        background: var(--mint);
+      }
+
+      .dot.error {
+        background: var(--coral);
+      }
+
+      .auth-form {
+        display: grid;
+        grid-template-columns: minmax(130px, 1fr) minmax(110px, 0.8fr) auto;
+        gap: 8px;
+      }
+
+      input,
+      button {
+        min-height: 40px;
+        border-radius: 8px;
+        font: inherit;
+      }
+
+      input {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid var(--line);
+        padding: 0 10px;
+        outline: none;
+      }
+
+      button {
+        border: 0;
+        padding: 0 12px;
+        color: #fff;
+        background: var(--mint-dark);
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .logout-btn {
+        color: var(--ink);
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+
+      .auth-box.signed-in .auth-form {
+        display: none;
+      }
+
+      .auth-session {
+        display: none;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .auth-box.signed-in .auth-session {
+        display: flex;
+      }
+
+      h1 {
+        max-width: 720px;
+        margin: 0;
+        font-size: clamp(2rem, 7vw, 4.2rem);
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      p {
+        max-width: 620px;
+        margin: 0;
+        color: var(--muted);
+        font-weight: 800;
+        line-height: 1.8;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      a {
+        min-height: 78px;
+        display: grid;
+        align-content: center;
+        gap: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        color: var(--ink);
+        background: var(--paper);
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      a.primary {
+        color: #fff;
+        border-color: transparent;
+        background: var(--mint-dark);
+      }
+
+      a span {
+        color: inherit;
+        opacity: 0.78;
+        font-size: 0.86rem;
+      }
+
+      @media (max-width: 760px) {
+        body {
+          align-items: start;
+          padding: 12px 0;
+        }
+
+        main {
+          width: min(390px, calc(100% - 20px));
+          margin-inline: auto;
+          padding: 14px;
+        }
+
+        .top-row,
+        .auth-session {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .auth-box {
+          width: 100%;
+        }
+
+        .auth-status {
+          justify-content: flex-start;
+        }
+
+        .auth-form,
+        .actions {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: clamp(2rem, 13vw, 3.1rem);
+        }
+      }
+      :root {
+        color-scheme: dark;
+        --ink: #e6eef3;
+        --muted: #9fb0bd;
+        --line: #233241;
+        --mint: #38d3c5;
+        --mint-dark: #0b1720;
+        --coral: #60a5fa;
+        --paper: #111b26;
+        --shadow: 0 22px 54px rgba(0, 0, 0, 0.42);
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 18% 12%, rgba(56, 211, 197, 0.14), transparent 24rem),
+          radial-gradient(circle at 88% 8%, rgba(96, 165, 250, 0.16), transparent 22rem),
+          linear-gradient(180deg, #060b12 0%, #0c1622 55%, #080d14 100%);
+      }
+
+      main,
+      .auth-box {
+        border-color: rgba(71, 91, 112, 0.72);
+        background: rgba(11, 20, 30, 0.88);
+      }
+
+      .logo {
+        background: linear-gradient(140deg, #38d3c5, #2563eb);
+      }
+
+      input {
+        color: var(--ink);
+        background: #0f1a26;
+        border-color: var(--line);
+      }
+
+      button,
+      a.primary {
+        color: #f8fbff;
+        background: linear-gradient(135deg, #0f766e, #1d4ed8);
+      }
+
+      a,
+      .logout-btn {
+        color: var(--ink);
+        background: #101a25;
+        border-color: var(--line);
+      }
+
+      .dot {
+        background: #526272;
+      }
+
+      .theme-control {
+        display: grid;
+        gap: 5px;
+        min-width: 132px;
+      }
+
+      .theme-control span {
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 900;
+      }
+
+      .theme-control select {
+        min-height: 38px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        background: var(--paper);
+        font: inherit;
+        font-weight: 900;
+        padding: 0 10px;
+      }
+
+      html[data-theme="cool"] {
+        color-scheme: dark;
+        --ink: #dce7ef;
+        --muted: #9aa8b4;
+        --line: #303b47;
+        --mint: #9cdcfe;
+        --mint-dark: #2b6f88;
+        --coral: #75beff;
+        --paper: #151b23;
+        --shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+      }
+
+      html[data-theme="warm"] {
+        color-scheme: light;
+        --ink: #24332f;
+        --muted: #687a75;
+        --line: #f0d7ca;
+        --mint: #35b6a6;
+        --mint-dark: #ff8a6b;
+        --coral: #ffb36b;
+        --paper: #fffaf3;
+        --shadow: 0 18px 36px rgba(181, 94, 65, 0.14);
+      }
+
+      html[data-theme="white-blue"] {
+        color-scheme: light;
+        --ink: #213042;
+        --muted: #5b6f86;
+        --line: #b9d9f0;
+        --mint: #7ccdf7;
+        --mint-dark: #4aaee8;
+        --coral: #b8e6ff;
+        --paper: #f5fbff;
+        --shadow: 0 14px 34px rgba(46, 112, 158, 0.16);
+      }
+
+      html[data-theme="cool"] body {
+        background:
+          radial-gradient(circle at 18% 12%, rgba(156, 220, 254, 0.13), transparent 24rem),
+          linear-gradient(180deg, #1e1e1e 0%, #1f252d 55%, #181c22 100%);
+      }
+
+      html[data-theme="warm"] body {
+        background:
+          radial-gradient(circle at 18% 12%, rgba(255, 138, 107, 0.18), transparent 24rem),
+          radial-gradient(circle at 88% 8%, rgba(53, 182, 166, 0.14), transparent 22rem),
+          linear-gradient(180deg, #fff4e8 0%, #fffaf3 54%, #f5fbf8 100%);
+      }
+
+      html[data-theme="white-blue"] body {
+        background:
+          radial-gradient(circle at 18% 12%, rgba(91, 184, 238, 0.2), transparent 24rem),
+          linear-gradient(180deg, #ffffff 0%, #eef8ff 55%, #f8fcff 100%);
+      }
+
+      html[data-theme] main,
+      html[data-theme] .auth-box {
+        border-color: var(--line);
+        background: color-mix(in srgb, var(--paper) 86%, transparent);
+      }
+
+      html[data-theme] input,
+      html[data-theme] a,
+      html[data-theme] .logout-btn {
+        color: var(--ink);
+        background: var(--paper);
+        border-color: var(--line);
+      }
+
+      html[data-theme] button,
+      html[data-theme] a.primary {
+        color: #fff;
+        background: linear-gradient(135deg, var(--mint-dark), var(--coral));
+      }
+
+      html[data-theme="cool"] .logo {
+        background: linear-gradient(140deg, #2b6f88, #4b8da8);
+      }
+
+      html[data-theme="white-blue"] .logo {
+        background: linear-gradient(140deg, #4aaee8, #91d9ff);
+      }
+
+      html[data-theme="white-blue"] button,
+      html[data-theme="white-blue"] a.primary {
+        color: #12344f;
+        background: linear-gradient(135deg, #7ccdf7, #b8e6ff);
+        border: 1px solid #9fd8f8;
+      }
+
+      html[data-theme="warm"] main,
+      html[data-theme="warm"] .auth-box {
+        background: rgba(255, 252, 247, 0.92);
+      }
+
+      html[data-theme="warm"] button,
+      html[data-theme="warm"] a.primary {
+        color: #fff;
+        background: linear-gradient(135deg, #ff8a6b, #ffb36b);
+      }
+
+      html[data-theme="warm"] .logo {
+        background: linear-gradient(140deg, #35b6a6, #ff8a6b 72%, #ffb36b);
+      }
+    </style>
+  </head>
+  <body>
+    <main aria-label="Kaimono Clock 体験トップ">
+      <div class="top-row">
+        <div class="brand">
+          <span class="logo">K</span>
+          <strong>Kaimono Clock</strong>
+        </div>
+
+        <section id="authBox" class="auth-box" aria-label="ログイン">
+          <label class="theme-control">
+            <span>カラー</span>
+            <select data-theme-select aria-label="テーマカラー">
+              <option value="warm">暖色</option>
+              <option value="cool">寒色</option>
+              <option value="white-blue">白青</option>
+            </select>
+          </label>
+          <div class="auth-status">
+            <span id="authDot" class="dot"></span>
+            <span id="authStatus">未ログイン</span>
+          </div>
+          <form id="authForm" class="auth-form">
+            <input id="authEmail" type="email" autocomplete="email" placeholder="メール" required />
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="パスワード" required />
+            <button type="submit">ログイン</button>
+          </form>
+          <div class="auth-session">
+            <span id="authUser"></span>
+            <button id="logoutBtn" class="logout-btn" type="button">ログアウト</button>
+          </div>
+        </section>
+      </div>
+
+      <h1>買い時と家計を、ひとつの体験で。</h1>
+      <p>
+        近くのお店の割引メモを保存し、同じ情報を家計簿カレンダーでも確認できます。
+        スマホからすぐ開けて、必要なものと残り予算を軽く見直せます。
+      </p>
+      <div class="actions">
+        <a class="primary" href="./app.html">
+          買い時メモを開く
+          <span>お店別の割引情報を登録</span>
+        </a>
+        <a href="./household.html">
+          家計簿を開く
+          <span>支出と買い時をカレンダーで確認</span>
+        </a>
+      </div>
+    </main>
+
+    <script>
+      const SUPABASE_URL = "https://wnxphjricowzxbkwnmjx.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndueHBoanJpY293enhia3dubWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDk5ODMsImV4cCI6MjA5NzQ4NTk4M30.p6lu6gNpdkTg0Nvnxj05m2tHbYeihYP7jFPdIEWfSxo";
+      const SESSION_KEY = "kaimono-clock-session-v2";
+      const THEME_KEY = "kaimono-clock-theme";
+
+      function setupThemeControls() {
+        const theme = localStorage.getItem(THEME_KEY) || "cool";
+        document.documentElement.dataset.theme = theme;
+        document.querySelectorAll("[data-theme-select]").forEach((select) => {
+          select.value = theme;
+          select.addEventListener("change", () => {
+            localStorage.setItem(THEME_KEY, select.value);
+            document.documentElement.dataset.theme = select.value;
+            document.querySelectorAll("[data-theme-select]").forEach((other) => {
+              other.value = select.value;
+            });
+          });
+        });
+      }
+
+      setupThemeControls();
+
+      const elements = {
+        authBox: document.querySelector("#authBox"),
+        authDot: document.querySelector("#authDot"),
+        authStatus: document.querySelector("#authStatus"),
+        authForm: document.querySelector("#authForm"),
+        authEmail: document.querySelector("#authEmail"),
+        authPassword: document.querySelector("#authPassword"),
+        authUser: document.querySelector("#authUser"),
+        logoutBtn: document.querySelector("#logoutBtn"),
+      };
+
+      let session = null;
+
+      function saveSession(nextSession) {
+        session = nextSession?.access_token ? nextSession : null;
+        if (session) {
+          localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        } else {
+          localStorage.removeItem(SESSION_KEY);
+        }
+        renderAuth();
+      }
+
+      function restoreSession() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+          session = saved?.access_token && saved?.user ? saved : null;
+        } catch {
+          localStorage.removeItem(SESSION_KEY);
+          session = null;
+        }
+        renderAuth();
+      }
+
+      function maskEmail(email) {
+        const [local, domain] = String(email || "").split("@");
+        if (!local || !domain) return "";
+        const maskedLocal = local.length <= 2
+          ? `${local[0] || ""}**${local.slice(-1) || ""}`
+          : `${local[0]}**${local.slice(-1)}`;
+        return `${maskedLocal}@${domain}`;
+      }
+
+      function renderAuth(message = "") {
+        const signedIn = Boolean(session?.access_token && session?.user);
+        elements.authBox.classList.toggle("signed-in", signedIn);
+        elements.authDot.className = `dot ${signedIn ? "ready" : ""}`;
+        elements.authStatus.textContent = message || (signedIn ? "ログイン中" : "未ログイン");
+        elements.authUser.textContent = signedIn ? maskEmail(session.user.email) : "";
+      }
+
+      async function authRequest(path, body) {
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error_description || data.msg || data.message || "Auth request failed");
+        }
+        return data;
+      }
+
+      elements.authForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        renderAuth("確認中...");
+        try {
+          const data = await authRequest("token?grant_type=password", {
+            email: elements.authEmail.value.trim(),
+            password: elements.authPassword.value,
+          });
+          saveSession(data);
+          elements.authPassword.value = "";
+        } catch {
+          elements.authDot.className = "dot error";
+          elements.authStatus.textContent = "ログイン失敗";
+        }
+      });
+
+      elements.logoutBtn.addEventListener("click", async () => {
+        if (session?.access_token) {
+          await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }).catch(() => null);
+        }
+        saveSession(null);
+      });
+
+      restoreSession();
+    </script>
+  </body>
+</html>
