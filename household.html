@@ -1380,6 +1380,46 @@ h3 {
       display: none;
     }
 
+    .nav-auth-form[hidden] {
+      display: none;
+    }
+
+    .nav-auth-form {
+      display: grid;
+      grid-template-columns: minmax(130px, 1fr) minmax(110px, 0.8fr) auto auto;
+      gap: 8px;
+      align-items: center;
+      min-width: min(100%, 520px);
+    }
+
+    .nav-auth-form input {
+      min-height: 38px;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: #fffdf7;
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 800;
+      outline: 0;
+    }
+
+    .nav-auth-form button {
+      min-height: 38px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 12px;
+      color: #fff;
+      background: #142c2c;
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 900;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
     .experience-link.primary {
       border-color: transparent;
       color: #fff;
@@ -1476,6 +1516,12 @@ h3 {
 
       .session-logout {
         width: 100%;
+      }
+
+      .nav-auth-form {
+        grid-template-columns: 1fr;
+        width: 100%;
+        min-width: 0;
       }
     }
 
@@ -1835,10 +1881,17 @@ h3 {
         </label>
         <div class="experience-links">
           <span id="sessionPill" class="session-pill">未ログイン</span>
+          <form id="householdAuthForm" class="nav-auth-form">
+            <input id="householdAuthEmail" type="email" autocomplete="email" placeholder="メール" required>
+            <input id="householdAuthPassword" type="password" autocomplete="current-password" placeholder="パスワード" required>
+            <button type="submit">ログイン</button>
+            <button id="householdSignupBtn" type="button">登録</button>
+          </form>
           <button id="householdLogoutBtn" class="session-logout" type="button" hidden>ログアウト</button>
           <a class="experience-link" href="./index.html">体験トップ</a>
           <a class="experience-link" href="./app.html">割引メモ</a>
-          <a class="experience-link primary" href="./household.html" aria-current="page">家計簿体験</a>
+          <a class="experience-link primary" href="./household.html" aria-current="page">家計簿</a>
+          <a class="experience-link" href="./shopping.html">買い物メモ</a>
         </div>
       </nav>
       <header class="top-bar" aria-label="家計簿の概要">
@@ -1892,7 +1945,6 @@ h3 {
       <nav class="view-tabs" aria-label="ページ切り替え">
         <button class="tab-button is-active" type="button" data-view="calendarView">カレンダー</button>
         <button class="tab-button" type="button" data-view="reportView">今月の分析</button>
-        <button class="tab-button" type="button" data-view="shoppingView">買い物メモ</button>
       </nav>
       <div id="globalBudgetAlert" class="budget-alert global-budget-alert" hidden></div>
 
@@ -1988,35 +2040,6 @@ h3 {
         </div>
       </section>
 
-      <section id="shoppingView" class="view-page report-page" aria-label="買い物メモ">
-        <div class="report-grid">
-          <section class="report-section wide">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow">Shopping</p>
-                <h2>買い物メモ</h2>
-              </div>
-              <span id="shoppingCount" class="report-note">0件</span>
-            </div>
-            <form id="shoppingForm" class="shopping-form">
-              <label>
-                買うもの
-                <input id="shoppingTitle" type="text" maxlength="40" placeholder="例: 牛乳" required>
-              </label>
-              <label>
-                目安金額
-                <input id="shoppingAmount" type="number" inputmode="numeric" min="0" step="1" placeholder="198">
-              </label>
-              <label>
-                ジャンル
-                <select id="shoppingCategory" required></select>
-              </label>
-              <button class="primary-button" type="submit">追加</button>
-            </form>
-            <div id="shoppingList" class="shopping-list"></div>
-          </section>
-        </div>
-      </section>
     </div>
 
     <div class="modal-backdrop" id="entryModal" hidden>
@@ -2127,6 +2150,10 @@ const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
 const THEME_KEY = "kaimono-clock-theme";
 const sessionPill = document.querySelector("#sessionPill");
 const householdLogoutBtn = document.querySelector("#householdLogoutBtn");
+const householdAuthForm = document.querySelector("#householdAuthForm");
+const householdAuthEmail = document.querySelector("#householdAuthEmail");
+const householdAuthPassword = document.querySelector("#householdAuthPassword");
+const householdSignupBtn = document.querySelector("#householdSignupBtn");
 
 function setupThemeControls() {
   const theme = localStorage.getItem(THEME_KEY) || "cool";
@@ -2194,7 +2221,6 @@ const state = {
   incomes: loadJson("monthMateIncomes", []),
   discounts: [],
   fixedCosts: loadJson("monthMateFixedCosts", []),
-  shoppingItems: loadJson("monthMateShoppingItems", []),
   monthlyBudgets: loadJson("monthMateMonthlyBudgets", {}),
   categoryBudgets: normalizeCategoryBudgets(loadJson("monthMateCategoryBudgets", {})),
   activeView: viewFromQuery(new URLSearchParams(location.search).get("view"))
@@ -2241,12 +2267,6 @@ const els = {
   fixedCostAmount: document.querySelector("#fixedCostAmount"),
   fixedCostCategory: document.querySelector("#fixedCostCategory"),
   fixedCostList: document.querySelector("#fixedCostList"),
-  shoppingForm: document.querySelector("#shoppingForm"),
-  shoppingTitle: document.querySelector("#shoppingTitle"),
-  shoppingAmount: document.querySelector("#shoppingAmount"),
-  shoppingCategory: document.querySelector("#shoppingCategory"),
-  shoppingList: document.querySelector("#shoppingList"),
-  shoppingCount: document.querySelector("#shoppingCount"),
   emptyTemplate: document.querySelector("#emptyTemplate"),
   monthlyChart: document.querySelector("#monthlyChart"),
 };
@@ -2259,7 +2279,6 @@ async function init() {
     .map((category) => `<option value="${category.id}">${category.label}</option>`)
     .join("");
   els.fixedCostCategory.innerHTML = els.category.innerHTML;
-  els.shoppingCategory.innerHTML = els.category.innerHTML;
 
   document.querySelector("#prevMonth").addEventListener("click", () => moveMonth(-1));
   document.querySelector("#nextMonth").addEventListener("click", () => moveMonth(1));
@@ -2270,7 +2289,6 @@ async function init() {
   els.form.addEventListener("submit", addExpense);
   els.incomeForm.addEventListener("submit", addIncome);
   els.fixedCostForm.addEventListener("submit", addFixedCost);
-  els.shoppingForm.addEventListener("submit", addShoppingItemFromForm);
   els.closeModal.addEventListener("click", closeEntryModal);
   els.modal.addEventListener("click", (event) => {
     if (event.target === els.modal) closeEntryModal();
@@ -2285,6 +2303,23 @@ async function init() {
     tab.addEventListener("click", () => setView(tab.dataset.view));
   });
   householdLogoutBtn?.addEventListener("click", signOut);
+  householdAuthForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await signIn(householdAuthEmail.value.trim(), householdAuthPassword.value);
+      householdAuthPassword.value = "";
+    } catch {
+      if (sessionPill) sessionPill.textContent = "ログイン失敗";
+    }
+  });
+  householdSignupBtn?.addEventListener("click", async () => {
+    try {
+      await signUp(householdAuthEmail.value.trim(), householdAuthPassword.value);
+      householdAuthPassword.value = "";
+    } catch {
+      if (sessionPill) sessionPill.textContent = "登録失敗";
+    }
+  });
 
   setView(state.activeView, false);
   if (currentUserId()) {
@@ -2309,9 +2344,11 @@ function renderSessionPill() {
     const signedIn = Boolean(session?.user?.email);
     sessionPill.textContent = signedIn ? `ログイン中: ${maskEmail(session.user.email)}` : "未ログイン";
     if (householdLogoutBtn) householdLogoutBtn.hidden = !signedIn;
+    if (householdAuthForm) householdAuthForm.hidden = signedIn;
   } catch {
     sessionPill.textContent = "未ログイン";
     if (householdLogoutBtn) householdLogoutBtn.hidden = true;
+    if (householdAuthForm) householdAuthForm.hidden = false;
   }
 }
 
@@ -2374,6 +2411,44 @@ async function refreshSessionIfNeeded() {
   return nextSession;
 }
 
+async function authRequest(path, body) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Auth request failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+async function signIn(email, password) {
+  if (!email || !password) return;
+  const data = await authRequest("token?grant_type=password", { email, password });
+  saveSession(data);
+  await migrateHouseholdLocalIfRemoteEmpty();
+  await loadHouseholdFromSupabase();
+  render();
+}
+
+async function signUp(email, password) {
+  if (!email || !password) return;
+  const data = await authRequest("signup", { email, password });
+  if (data?.access_token) {
+    saveSession(data);
+    await migrateHouseholdLocalIfRemoteEmpty();
+    await loadHouseholdFromSupabase();
+    render();
+  } else if (sessionPill) {
+    sessionPill.textContent = "登録メールを確認してください";
+  }
+}
+
 async function supabaseRequest(path, options = {}) {
   const session = await refreshSessionIfNeeded();
   if (!session?.access_token) throw new Error("Not signed in");
@@ -2413,7 +2488,6 @@ async function signOut() {
   state.incomes = [];
   state.discounts = [];
   state.fixedCosts = [];
-  state.shoppingItems = [];
   state.monthlyBudgets = {};
   state.categoryBudgets = {};
   render();
@@ -2460,10 +2534,6 @@ function saveFixedCosts() {
   localStorage.setItem("monthMateFixedCosts", JSON.stringify(state.fixedCosts));
 }
 
-function saveShoppingItems() {
-  localStorage.setItem("monthMateShoppingItems", JSON.stringify(state.shoppingItems));
-}
-
 function recordToRow(item, type) {
   return {
     id: item.id,
@@ -2507,45 +2577,16 @@ function rowToFixedCost(row) {
   };
 }
 
-function shoppingItemToRow(item) {
-  return {
-    id: item.id,
-    user_id: currentUserId(),
-    title: item.title,
-    amount: item.amount || null,
-    category: item.category,
-    store_name: item.storeName || null,
-    store_label: item.storeLabel || null,
-    source_discount_id: item.sourceDiscountId || null,
-    checked: Boolean(item.checked)
-  };
-}
-
-function rowToShoppingItem(row) {
-  return {
-    id: row.id,
-    title: row.title,
-    amount: row.amount == null ? 0 : Number(row.amount),
-    category: row.category,
-    storeName: row.store_name || "",
-    storeLabel: row.store_label || "",
-    sourceDiscountId: row.source_discount_id || "",
-    checked: Boolean(row.checked)
-  };
-}
-
 async function loadHouseholdFromSupabase() {
   if (!currentUserId()) return;
-  const [records, budgets, fixedCosts, shoppingItems] = await Promise.all([
+  const [records, budgets, fixedCosts] = await Promise.all([
     supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?select=*&order=record_date.desc`),
     supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=*`),
-    supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?select=*&order=created_at.desc`).catch(() => []),
-    supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?select=*&order=created_at.desc`).catch(() => [])
+    supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?select=*&order=created_at.desc`).catch(() => [])
   ]);
   state.expenses = (records || []).filter((row) => row.record_type === "expense").map(rowToRecord);
   state.incomes = (records || []).filter((row) => row.record_type === "income").map(rowToRecord);
   state.fixedCosts = (fixedCosts || []).map(rowToFixedCost);
-  state.shoppingItems = (shoppingItems || []).map(rowToShoppingItem);
   state.monthlyBudgets = {};
   state.categoryBudgets = {};
   (budgets || []).forEach((row) => {
@@ -2555,7 +2596,6 @@ async function loadHouseholdFromSupabase() {
   saveExpenses();
   saveIncomes();
   saveFixedCosts();
-  saveShoppingItems();
   saveMonthlyBudgets();
   saveCategoryBudgets();
 }
@@ -2565,7 +2605,6 @@ async function migrateHouseholdLocalIfRemoteEmpty() {
   const remoteRecords = await supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?select=id&limit=1`);
   const remoteBudgets = await supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=id&limit=1`);
   const remoteFixedCosts = await supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?select=id&limit=1`).catch(() => []);
-  const remoteShoppingItems = await supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?select=id&limit=1`).catch(() => []);
   const localRecords = [
     ...state.expenses.map((item) => recordToRow(item, "expense")),
     ...state.incomes.map((item) => recordToRow(item, "income"))
@@ -2595,13 +2634,6 @@ async function migrateHouseholdLocalIfRemoteEmpty() {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify(state.fixedCosts.map(fixedCostToRow))
-    }).catch(() => null);
-  }
-  if (!remoteShoppingItems?.length && state.shoppingItems.length) {
-    await supabaseRequest(HOUSEHOLD_SHOPPING_TABLE, {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify(state.shoppingItems.map(shoppingItemToRow))
     }).catch(() => null);
   }
 }
@@ -2635,23 +2667,6 @@ async function syncFixedCost(item) {
 async function deleteFixedCostFromSupabase(id) {
   if (!currentUserId()) return;
   await supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?id=eq.${encodeURIComponent(id)}`, {
-    method: "DELETE",
-    headers: { Prefer: "return=minimal" }
-  });
-}
-
-async function syncShoppingItem(item) {
-  if (!currentUserId()) return;
-  await supabaseRequest(HOUSEHOLD_SHOPPING_TABLE, {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify(shoppingItemToRow(item))
-  });
-}
-
-async function deleteShoppingItemFromSupabase(id) {
-  if (!currentUserId()) return;
-  await supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?id=eq.${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: { Prefer: "return=minimal" }
   });
@@ -2841,42 +2856,6 @@ function deleteFixedCost(id) {
   render();
 }
 
-function addShoppingItemFromForm(event) {
-  event.preventDefault();
-  const item = {
-    id: crypto.randomUUID(),
-    title: els.shoppingTitle.value.trim(),
-    amount: Math.max(0, Number(els.shoppingAmount.value) || 0),
-    category: els.shoppingCategory.value,
-    checked: false,
-    storeName: "",
-    storeLabel: "",
-    sourceDiscountId: ""
-  };
-  if (!item.title) return;
-  state.shoppingItems.unshift(item);
-  saveShoppingItems();
-  syncShoppingItem(item).catch(() => null);
-  els.shoppingForm.reset();
-  renderShopping();
-}
-
-function toggleShoppingItem(id, checked) {
-  const item = state.shoppingItems.find((entry) => entry.id === id);
-  if (!item) return;
-  item.checked = checked;
-  saveShoppingItems();
-  syncShoppingItem(item).catch(() => null);
-  renderShopping();
-}
-
-function deleteShoppingItem(id) {
-  state.shoppingItems = state.shoppingItems.filter((item) => item.id !== id);
-  saveShoppingItems();
-  deleteShoppingItemFromSupabase(id).catch(() => null);
-  renderShopping();
-}
-
 function deleteExpense(id) {
   state.expenses = state.expenses.filter((expense) => expense.id !== id);
   saveExpenses();
@@ -2936,12 +2915,11 @@ function setView(viewId, updateHash = true) {
     view.classList.toggle("is-active", view.id === viewId);
   });
   if (updateHash) {
-    const viewParam = viewId === "reportView" ? "report" : viewId === "shoppingView" ? "shopping" : "";
+    const viewParam = viewId === "reportView" ? "report" : "";
     const url = viewParam ? `${location.pathname}?view=${viewParam}` : location.pathname;
     history.replaceState(null, "", url);
   }
   renderReports();
-  if (viewId === "shoppingView") renderShopping();
 }
 
 function render() {
@@ -2953,7 +2931,6 @@ function render() {
   renderFixedCosts();
   renderList();
   renderIncomeList();
-  renderShopping();
   renderReports();
 }
 
@@ -3205,45 +3182,6 @@ function createRecordRow(item, category, type, compact = false) {
   return row;
 }
 
-function renderShopping() {
-  if (!els.shoppingList) return;
-  const activeItems = [...state.shoppingItems].sort((a, b) => Number(a.checked) - Number(b.checked));
-  els.shoppingCount.textContent = `${activeItems.filter((item) => !item.checked).length}件`;
-  els.shoppingList.innerHTML = "";
-  if (!activeItems.length) {
-    const empty = els.emptyTemplate.content.cloneNode(true);
-    empty.querySelector("p").textContent = "買い物メモはまだありません。必要なものを追加してください。";
-    els.shoppingList.append(empty);
-  } else {
-    activeItems.forEach((item) => {
-      const category = categories.find((entry) => entry.id === item.category) || categories.at(-1);
-      const row = document.createElement("article");
-      row.className = `shopping-item ${item.checked ? "is-done" : ""}`;
-      row.innerHTML = `
-        <label class="shopping-check">
-          <input type="checkbox" ${item.checked ? "checked" : ""}>
-          <span class="shopping-main">
-            <strong>${escapeHtml(item.title)}</strong>
-            <span class="shopping-meta">
-              ${item.amount ? `${yen.format(item.amount)} / ` : ""}${escapeHtml(item.storeLabel || item.storeName || category.label)}
-            </span>
-          </span>
-        </label>
-        <button class="delete-button" type="button" aria-label="${escapeHtml(item.title)}を削除">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
-          </svg>
-        </button>
-      `;
-      row.querySelector("input").addEventListener("change", (event) => {
-        toggleShoppingItem(item.id, event.target.checked);
-      });
-      row.querySelector("button").addEventListener("click", () => deleteShoppingItem(item.id));
-      els.shoppingList.append(row);
-    });
-  }
-}
-
 function renderReports() {
   renderMonthlyChart();
 }
@@ -3355,7 +3293,6 @@ function remainingDaysInViewMonth() {
 
 function viewFromQuery(value) {
   if (value === "report") return "reportView";
-  if (value === "shopping") return "shoppingView";
   return "calendarView";
 }
 

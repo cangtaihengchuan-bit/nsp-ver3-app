@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="ja" data-theme="cool">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kaimono Clock | 買い物メモ</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <style>
+      :root {
+        --bg: #f4fbf8;
+        --paper: #fffdf7;
+        --ink: #152028;
+        --muted: #64748b;
+        --line: #dce6e4;
+        --mint: #35b6a6;
+        --coral: #ff8a6b;
+        --shadow: 0 18px 42px rgba(34, 79, 76, 0.13);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(180deg, rgba(53, 182, 166, 0.12), rgba(255, 255, 255, 0) 320px),
+          var(--bg);
+        color: var(--ink);
+        font-family: "Inter", "Noto Sans JP", system-ui, sans-serif;
+      }
+
+      button,
+      input,
+      select { font: inherit; }
+
+      .app-shell {
+        width: min(1160px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 18px 0 36px;
+      }
+
+      .experience-nav,
+      .top-bar,
+      .panel {
+        border: 1px solid rgba(220, 230, 228, 0.95);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
+      }
+
+      .experience-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding: 12px;
+      }
+
+      .experience-brand,
+      .experience-links {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+
+      .experience-logo {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border-radius: 8px;
+        color: #fff;
+        background: linear-gradient(140deg, var(--mint), var(--coral));
+        font-weight: 900;
+      }
+
+      .theme-control,
+      .session-pill,
+      .experience-link,
+      .session-logout {
+        min-height: 38px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 10px;
+        background: #fff;
+        color: var(--ink);
+        font-size: 0.84rem;
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .theme-control {
+        grid-auto-flow: column;
+        gap: 8px;
+      }
+
+      .theme-control select {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-weight: 900;
+        outline: 0;
+      }
+
+      .session-pill {
+        color: var(--muted);
+        background: rgba(255, 253, 247, 0.86);
+      }
+
+      .experience-link.primary,
+      .nav-auth-form button,
+      .primary-button {
+        border-color: transparent;
+        color: #fff;
+        background: #142c2c;
+      }
+
+      .session-logout,
+      .nav-auth-form button,
+      .primary-button,
+      .delete-button {
+        cursor: pointer;
+      }
+
+      .session-logout[hidden],
+      .nav-auth-form[hidden] { display: none; }
+
+      .nav-auth-form {
+        display: grid;
+        grid-template-columns: minmax(130px, 1fr) minmax(110px, 0.8fr) auto auto;
+        gap: 8px;
+        align-items: center;
+        min-width: min(100%, 520px);
+      }
+
+      .nav-auth-form input,
+      .shopping-form input,
+      .shopping-form select {
+        min-height: 38px;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 10px;
+        background: #fffdf7;
+        color: var(--ink);
+        font-weight: 800;
+        outline: 0;
+      }
+
+      .nav-auth-form button,
+      .primary-button {
+        min-height: 38px;
+        border-radius: 8px;
+        padding: 0 12px;
+        font-weight: 900;
+      }
+
+      .top-bar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        align-items: center;
+        margin-bottom: 14px;
+        padding: 18px;
+      }
+
+      .eyebrow {
+        margin: 0 0 5px;
+        color: var(--mint);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      p { margin: 0; }
+
+      h1 {
+        font-size: clamp(1.55rem, 3vw, 2.5rem);
+        line-height: 1.15;
+      }
+
+      .top-note {
+        color: var(--muted);
+        font-weight: 800;
+        line-height: 1.55;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .report-note {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .shopping-form {
+        display: grid;
+        grid-template-columns: minmax(160px, 1.2fr) minmax(120px, 0.7fr) minmax(120px, 0.8fr) auto;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .shopping-form label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .shopping-list,
+      .discount-candidates {
+        display: grid;
+        gap: 10px;
+      }
+
+      .shopping-item,
+      .discount-candidate,
+      .blank-row {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffdf7;
+      }
+
+      .shopping-item,
+      .discount-candidate {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px;
+      }
+
+      .shopping-item.is-done {
+        opacity: 0.56;
+      }
+
+      .shopping-check {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .shopping-check input {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--mint);
+      }
+
+      .shopping-main,
+      .candidate-main {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .shopping-main strong,
+      .candidate-main strong {
+        overflow-wrap: anywhere;
+      }
+
+      .shopping-meta,
+      .candidate-main small {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 800;
+        line-height: 1.45;
+      }
+
+      .price-pill {
+        display: inline-grid;
+        min-height: 32px;
+        place-items: center;
+        border-radius: 8px;
+        padding: 0 10px;
+        color: #0f766e;
+        background: rgba(53, 182, 166, 0.14);
+        font-weight: 900;
+      }
+
+      .candidate-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .delete-button,
+      .candidate-actions button {
+        display: grid;
+        min-width: 38px;
+        min-height: 38px;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        font-weight: 900;
+      }
+
+      .delete-button svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .blank-row {
+        padding: 14px;
+        color: var(--muted);
+        font-weight: 800;
+        line-height: 1.55;
+      }
+
+      html[data-theme="warm"] {
+        --bg: #fff7ed;
+        --paper: #fffaf0;
+        --mint: #22b8a1;
+        --coral: #ff7a59;
+      }
+
+      html[data-theme="white-blue"] {
+        --bg: #f8fcff;
+        --paper: #ffffff;
+        --mint: #38a3d1;
+        --coral: #7ccdf7;
+      }
+
+      html[data-theme="warm"] .experience-logo,
+      html[data-theme="warm"] .experience-link.primary,
+      html[data-theme="warm"] .nav-auth-form button,
+      html[data-theme="warm"] .primary-button {
+        background: linear-gradient(135deg, #ff8a6b, #ffb36b);
+      }
+
+      html[data-theme="white-blue"] .experience-link.primary,
+      html[data-theme="white-blue"] .nav-auth-form button,
+      html[data-theme="white-blue"] .primary-button {
+        color: #12344f;
+        background: linear-gradient(135deg, #7ccdf7, #b8e6ff);
+      }
+
+      @media (max-width: 860px) {
+        .experience-nav,
+        .top-bar,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .experience-nav,
+        .experience-links {
+          align-items: stretch;
+        }
+
+        .experience-nav,
+        .experience-brand,
+        .experience-links {
+          flex-direction: column;
+        }
+
+        .experience-link,
+        .session-pill,
+        .session-logout,
+        .theme-control {
+          width: 100%;
+        }
+
+        .nav-auth-form,
+        .shopping-form {
+          grid-template-columns: 1fr;
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <nav class="experience-nav" aria-label="アプリ体験ナビゲーション">
+        <div class="experience-brand">
+          <span class="experience-logo">K</span>
+          <strong>Kaimono Clock</strong>
+        </div>
+        <label class="theme-control">
+          <span>カラー</span>
+          <select data-theme-select aria-label="テーマカラー">
+            <option value="warm">暖色</option>
+            <option value="cool">寒色</option>
+            <option value="white-blue">白青</option>
+          </select>
+        </label>
+        <div class="experience-links">
+          <span id="sessionPill" class="session-pill">未ログイン</span>
+          <form id="shoppingAuthForm" class="nav-auth-form">
+            <input id="shoppingAuthEmail" type="email" autocomplete="email" placeholder="メール" required>
+            <input id="shoppingAuthPassword" type="password" autocomplete="current-password" placeholder="パスワード" required>
+            <button type="submit">ログイン</button>
+            <button id="shoppingSignupBtn" type="button">登録</button>
+          </form>
+          <button id="shoppingLogoutBtn" class="session-logout" type="button" hidden>ログアウト</button>
+          <a class="experience-link" href="./index.html">体験トップ</a>
+          <a class="experience-link" href="./app.html">割引メモ</a>
+          <a class="experience-link" href="./household.html">家計簿</a>
+          <a class="experience-link primary" href="./shopping.html" aria-current="page">買い物メモ</a>
+        </div>
+      </nav>
+
+      <header class="top-bar">
+        <div>
+          <p class="eyebrow">Shopping</p>
+          <h1>買い物メモ</h1>
+        </div>
+        <p class="top-note">必要なものを手早く残し、割引メモにある商品は候補から追加できます。</p>
+      </header>
+
+      <main class="layout">
+        <section class="panel" aria-label="買い物メモ">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Memo</p>
+              <h2>買うもの</h2>
+            </div>
+            <span id="shoppingCount" class="report-note">0件</span>
+          </div>
+          <form id="shoppingForm" class="shopping-form">
+            <label>
+              買うもの
+              <input id="shoppingTitle" type="text" maxlength="40" placeholder="例: 牛乳" required>
+            </label>
+            <label>
+              目安金額
+              <input id="shoppingAmount" type="number" inputmode="numeric" min="0" step="1" placeholder="198">
+            </label>
+            <label>
+              ジャンル
+              <select id="shoppingCategory" required></select>
+            </label>
+            <button class="primary-button" type="submit">追加</button>
+          </form>
+          <div id="shoppingList" class="shopping-list"></div>
+        </section>
+
+        <aside class="panel" aria-label="割引メモからの候補">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Discount</p>
+              <h2>割引候補</h2>
+            </div>
+            <span id="candidateCount" class="report-note">0件</span>
+          </div>
+          <div id="discountCandidates" class="discount-candidates"></div>
+        </aside>
+      </main>
+    </div>
+
+    <template id="emptyTemplate">
+      <div class="blank-row"><p></p></div>
+    </template>
+
+    <script>
+      const categories = [
+        { id: "food", label: "食費" },
+        { id: "daily", label: "日用品" },
+        { id: "daily-spend", label: "一日の支出" },
+        { id: "transport", label: "交通" },
+        { id: "study", label: "学業" },
+        { id: "fun", label: "遊び" },
+        { id: "other", label: "不明" }
+      ];
+
+      const SUPABASE_URL = "https://wnxphjricowzxbkwnmjx.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndueHBoanJpY293enhia3dubWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDk5ODMsImV4cCI6MjA5NzQ4NTk4M30.p6lu6gNpdkTg0Nvnxj05m2tHbYeihYP7jFPdIEWfSxo";
+      const HOUSEHOLD_SHOPPING_TABLE = "nsp_household_shopping_items";
+      const SESSION_KEY = "kaimono-clock-session-v2";
+      const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
+      const THEME_KEY = "kaimono-clock-theme";
+      const SHOPPING_KEY = "monthMateShoppingItems";
+
+      const yen = new Intl.NumberFormat("ja-JP", {
+        style: "currency",
+        currency: "JPY",
+        maximumFractionDigits: 0
+      });
+
+      const state = {
+        shoppingItems: loadJson(SHOPPING_KEY, []),
+        discounts: []
+      };
+
+      const els = {
+        sessionPill: document.querySelector("#sessionPill"),
+        authForm: document.querySelector("#shoppingAuthForm"),
+        authEmail: document.querySelector("#shoppingAuthEmail"),
+        authPassword: document.querySelector("#shoppingAuthPassword"),
+        signupBtn: document.querySelector("#shoppingSignupBtn"),
+        logoutBtn: document.querySelector("#shoppingLogoutBtn"),
+        form: document.querySelector("#shoppingForm"),
+        title: document.querySelector("#shoppingTitle"),
+        amount: document.querySelector("#shoppingAmount"),
+        category: document.querySelector("#shoppingCategory"),
+        list: document.querySelector("#shoppingList"),
+        count: document.querySelector("#shoppingCount"),
+        candidates: document.querySelector("#discountCandidates"),
+        candidateCount: document.querySelector("#candidateCount"),
+        emptyTemplate: document.querySelector("#emptyTemplate")
+      };
+
+      init();
+
+      async function init() {
+        setupThemeControls();
+        renderSessionPill();
+        els.category.innerHTML = categories
+          .map((category) => `<option value="${category.id}">${category.label}</option>`)
+          .join("");
+        els.form.addEventListener("submit", addShoppingItemFromForm);
+        els.authForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          try {
+            await signIn(els.authEmail.value.trim(), els.authPassword.value);
+            els.authPassword.value = "";
+          } catch {
+            els.sessionPill.textContent = "ログイン失敗";
+          }
+        });
+        els.signupBtn.addEventListener("click", async () => {
+          try {
+            await signUp(els.authEmail.value.trim(), els.authPassword.value);
+            els.authPassword.value = "";
+          } catch {
+            els.sessionPill.textContent = "登録失敗";
+          }
+        });
+        els.logoutBtn.addEventListener("click", signOut);
+
+        if (currentUserId()) {
+          try {
+            await migrateShoppingLocalIfRemoteEmpty();
+            await loadShoppingFromSupabase();
+          } catch {
+            els.sessionPill.textContent = `${els.sessionPill.textContent} / 同期未設定`;
+          }
+        }
+        render();
+      }
+
+      function setupThemeControls() {
+        const theme = localStorage.getItem(THEME_KEY) || "cool";
+        document.documentElement.dataset.theme = theme;
+        document.querySelectorAll("[data-theme-select]").forEach((select) => {
+          select.value = theme;
+          select.addEventListener("change", () => {
+            localStorage.setItem(THEME_KEY, select.value);
+            document.documentElement.dataset.theme = select.value;
+          });
+        });
+      }
+
+      function loadJson(key, fallback) {
+        try {
+          return JSON.parse(localStorage.getItem(key)) || fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
+      function maskEmail(email) {
+        const [local, domain] = String(email || "").split("@");
+        if (!local || !domain) return "";
+        const maskedLocal = local.length <= 2
+          ? `${local[0] || ""}**${local.slice(-1) || ""}`
+          : `${local[0]}**${local.slice(-1)}`;
+        return `${maskedLocal}@${domain}`;
+      }
+
+      function currentSession() {
+        try {
+          return JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+        } catch {
+          return null;
+        }
+      }
+
+      function currentUserId() {
+        return currentSession()?.user?.id || "";
+      }
+
+      function saveSession(session) {
+        if (session?.access_token) {
+          localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        } else {
+          localStorage.removeItem(SESSION_KEY);
+        }
+        renderSessionPill();
+      }
+
+      function renderSessionPill() {
+        const session = currentSession();
+        const signedIn = Boolean(session?.user?.email);
+        els.sessionPill.textContent = signedIn ? `ログイン中: ${maskEmail(session.user.email)}` : "未ログイン";
+        els.authForm.hidden = signedIn;
+        els.logoutBtn.hidden = !signedIn;
+      }
+
+      function shouldRefreshSession(session) {
+        if (!session?.access_token || !session?.refresh_token || !session?.expires_at) return false;
+        return Math.floor(Date.now() / 1000) >= Number(session.expires_at) - 60;
+      }
+
+      async function refreshSessionIfNeeded() {
+        const session = currentSession();
+        if (!session?.access_token) return null;
+        if (!shouldRefreshSession(session)) return session;
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ refresh_token: session.refresh_token })
+        });
+        if (!response.ok) {
+          saveSession(null);
+          throw new Error("Session refresh failed");
+        }
+        const nextSession = await response.json();
+        saveSession(nextSession);
+        return nextSession;
+      }
+
+      async function authRequest(path, body) {
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || `Auth request failed: ${response.status}`);
+        }
+        return response.json();
+      }
+
+      async function signIn(email, password) {
+        if (!email || !password) return;
+        const data = await authRequest("token?grant_type=password", { email, password });
+        saveSession(data);
+        await migrateShoppingLocalIfRemoteEmpty();
+        await loadShoppingFromSupabase();
+        render();
+      }
+
+      async function signUp(email, password) {
+        if (!email || !password) return;
+        const data = await authRequest("signup", { email, password });
+        if (data?.access_token) {
+          saveSession(data);
+          await migrateShoppingLocalIfRemoteEmpty();
+          await loadShoppingFromSupabase();
+          render();
+        } else {
+          els.sessionPill.textContent = "登録メールを確認してください";
+        }
+      }
+
+      async function signOut() {
+        const session = currentSession();
+        if (session?.access_token) {
+          await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${session.access_token}`
+            }
+          }).catch(() => null);
+        }
+        saveSession(null);
+        state.shoppingItems = [];
+        render();
+      }
+
+      async function supabaseRequest(path, options = {}) {
+        const session = await refreshSessionIfNeeded();
+        if (!session?.access_token) throw new Error("Not signed in");
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+          ...options,
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          }
+        });
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || `Supabase request failed: ${response.status}`);
+        }
+        if (response.status === 204) return null;
+        return response.json();
+      }
+
+      function shoppingItemToRow(item) {
+        return {
+          id: item.id,
+          user_id: currentUserId(),
+          title: item.title,
+          amount: item.amount || null,
+          category: item.category,
+          store_name: item.storeName || null,
+          store_label: item.storeLabel || null,
+          source_discount_id: item.sourceDiscountId || null,
+          checked: Boolean(item.checked)
+        };
+      }
+
+      function rowToShoppingItem(row) {
+        return {
+          id: row.id,
+          title: row.title,
+          amount: row.amount == null ? 0 : Number(row.amount),
+          category: row.category,
+          storeName: row.store_name || "",
+          storeLabel: row.store_label || "",
+          sourceDiscountId: row.source_discount_id || "",
+          checked: Boolean(row.checked)
+        };
+      }
+
+      async function loadShoppingFromSupabase() {
+        if (!currentUserId()) return;
+        const rows = await supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?select=*&order=created_at.desc`).catch(() => []);
+        state.shoppingItems = (rows || []).map(rowToShoppingItem);
+        saveShoppingItems();
+      }
+
+      async function migrateShoppingLocalIfRemoteEmpty() {
+        if (!currentUserId()) return;
+        const remoteRows = await supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?select=id&limit=1`).catch(() => []);
+        if (!remoteRows?.length && state.shoppingItems.length) {
+          await supabaseRequest(HOUSEHOLD_SHOPPING_TABLE, {
+            method: "POST",
+            headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+            body: JSON.stringify(state.shoppingItems.map(shoppingItemToRow))
+          }).catch(() => null);
+        }
+      }
+
+      async function syncShoppingItem(item) {
+        if (!currentUserId()) return;
+        await supabaseRequest(HOUSEHOLD_SHOPPING_TABLE, {
+          method: "POST",
+          headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+          body: JSON.stringify(shoppingItemToRow(item))
+        });
+      }
+
+      async function deleteShoppingItemFromSupabase(id) {
+        if (!currentUserId()) return;
+        await supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          headers: { Prefer: "return=minimal" }
+        });
+      }
+
+      function saveShoppingItems() {
+        localStorage.setItem(SHOPPING_KEY, JSON.stringify(state.shoppingItems));
+      }
+
+      function loadDiscountCache() {
+        const userId = currentUserId();
+        if (!userId) return [];
+        try {
+          const notes = JSON.parse(localStorage.getItem(`${DISCOUNT_CACHE_KEY_PREFIX}:${userId}`) || "{}");
+          return Object.entries(notes || {}).flatMap(([storeId, items]) => {
+            return (Array.isArray(items) ? items : []).map((item) => ({ ...item, storeId }));
+          });
+        } catch {
+          return [];
+        }
+      }
+
+      function addShoppingItemFromForm(event) {
+        event.preventDefault();
+        const item = {
+          id: crypto.randomUUID(),
+          title: els.title.value.trim(),
+          amount: Math.max(0, Number(els.amount.value) || 0),
+          category: els.category.value,
+          checked: false,
+          storeName: "",
+          storeLabel: "",
+          sourceDiscountId: ""
+        };
+        if (!item.title) return;
+        addShoppingItem(item);
+        els.form.reset();
+      }
+
+      function addShoppingItem(item) {
+        state.shoppingItems.unshift(item);
+        saveShoppingItems();
+        syncShoppingItem(item).catch(() => null);
+        render();
+      }
+
+      function addDiscountCandidate(note) {
+        addShoppingItem({
+          id: crypto.randomUUID(),
+          title: note.name || "商品名なし",
+          amount: Math.max(0, Number(note.price) || 0),
+          category: guessShoppingCategory(note),
+          checked: false,
+          storeName: note.storeName || "",
+          storeLabel: note.storeLabel || note.storeName || "",
+          sourceDiscountId: note.id || ""
+        });
+      }
+
+      function toggleShoppingItem(id, checked) {
+        const item = state.shoppingItems.find((entry) => entry.id === id);
+        if (!item) return;
+        item.checked = checked;
+        saveShoppingItems();
+        syncShoppingItem(item).catch(() => null);
+        renderShopping();
+      }
+
+      function deleteShoppingItem(id) {
+        state.shoppingItems = state.shoppingItems.filter((item) => item.id !== id);
+        saveShoppingItems();
+        deleteShoppingItemFromSupabase(id).catch(() => null);
+        renderShopping();
+      }
+
+      function render() {
+        state.discounts = loadDiscountCache();
+        renderShopping();
+        renderDiscountCandidates();
+      }
+
+      function renderShopping() {
+        const activeItems = [...state.shoppingItems].sort((a, b) => Number(a.checked) - Number(b.checked));
+        els.count.textContent = `${activeItems.filter((item) => !item.checked).length}件`;
+        els.list.innerHTML = "";
+        if (!activeItems.length) {
+          const empty = els.emptyTemplate.content.cloneNode(true);
+          empty.querySelector("p").textContent = "買い物メモはまだありません。必要なものを追加してください。";
+          els.list.append(empty);
+          return;
+        }
+        activeItems.forEach((item) => {
+          const category = categories.find((entry) => entry.id === item.category) || categories.at(-1);
+          const row = document.createElement("article");
+          row.className = `shopping-item ${item.checked ? "is-done" : ""}`;
+          row.innerHTML = `
+            <label class="shopping-check">
+              <input type="checkbox" ${item.checked ? "checked" : ""}>
+              <span class="shopping-main">
+                <strong>${escapeHtml(item.title)}</strong>
+                <span class="shopping-meta">
+                  ${item.amount ? `${yen.format(item.amount)} / ` : ""}${escapeHtml(item.storeLabel || item.storeName || category.label)}
+                </span>
+              </span>
+            </label>
+            <button class="delete-button" type="button" aria-label="${escapeHtml(item.title)}を削除">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
+              </svg>
+            </button>
+          `;
+          row.querySelector("input").addEventListener("change", (event) => {
+            toggleShoppingItem(item.id, event.target.checked);
+          });
+          row.querySelector("button").addEventListener("click", () => deleteShoppingItem(item.id));
+          els.list.append(row);
+        });
+      }
+
+      function renderDiscountCandidates() {
+        const candidates = state.discounts
+          .filter((note) => note?.name)
+          .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
+          .slice(0, 12);
+        els.candidateCount.textContent = `${candidates.length}件`;
+        els.candidates.innerHTML = "";
+        if (!currentUserId()) {
+          const empty = els.emptyTemplate.content.cloneNode(true);
+          empty.querySelector("p").textContent = "ログインすると、割引メモに保存した商品が候補に出ます。";
+          els.candidates.append(empty);
+          return;
+        }
+        if (!candidates.length) {
+          const empty = els.emptyTemplate.content.cloneNode(true);
+          empty.querySelector("p").textContent = "割引候補はまだありません。割引メモで商品を保存するとここに表示されます。";
+          els.candidates.append(empty);
+          return;
+        }
+        candidates.forEach((note) => {
+          const row = document.createElement("article");
+          row.className = "discount-candidate";
+          row.innerHTML = `
+            <div class="candidate-main">
+              <strong>${escapeHtml(note.name)}</strong>
+              <small>${escapeHtml(note.storeLabel || note.storeName || "店舗未設定")} / ${scheduleLabel(note)}</small>
+            </div>
+            <div class="candidate-actions">
+              <span class="price-pill">${yen.format(Number(note.price || 0))}</span>
+              <button type="button">追加</button>
+            </div>
+          `;
+          row.querySelector("button").addEventListener("click", () => addDiscountCandidate(note));
+          els.candidates.append(row);
+        });
+      }
+
+      function scheduleLabel(note) {
+        if (note.saleMode === "weekly") return "毎週";
+        if (note.saleMode === "monthly") return "毎月";
+        if (note.saleMode === "range") return `${note.saleDate || "開始日未設定"}〜${note.saleEndDate || "終了日未設定"}`;
+        return note.saleDate || "日付未設定";
+      }
+
+      function guessShoppingCategory(note) {
+        const text = `${note.name || ""} ${note.storeType || ""}`;
+        if (/薬|日用|洗剤|紙|衛生|ドラッグ/.test(text)) return "daily";
+        if (/文具|本|学|ノート|ペン/.test(text)) return "study";
+        return "food";
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+        }[char]));
+      }
+    </script>
+  </body>
+</html>
