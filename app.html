@@ -2569,6 +2569,23 @@
         }
       }
 
+      async function updateNoteShareInSupabase(noteId, shareEnabled) {
+        await supabaseRequest(`${SUPABASE_TABLE}?id=eq.${encodeURIComponent(noteId)}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ shared_enabled: Boolean(shareEnabled) }),
+        });
+      }
+
+      function updateLocalNoteShare(storeId, noteId, shareEnabled) {
+        const allNotes = loadNotes();
+        allNotes[storeId] = (allNotes[storeId] || []).map((note) => (
+          note.id === noteId ? { ...note, shareEnabled: Boolean(shareEnabled) } : note
+        ));
+        state.notes = allNotes;
+        saveDiscountCache();
+      }
+
       async function clearNotesFromSupabase() {
         await supabaseRequest(`${SUPABASE_TABLE}?id=not.is.null`, {
           method: "DELETE",
@@ -2948,11 +2965,18 @@
           const row = document.createElement("article");
           row.className = "discount-row";
           const labelEditor = note.isShared
-            ? '<span class="shared-pill">共有情報</span><button class="delete-btn" type="button" data-action="delete-discount">非表示</button>'
+            ? '<span class="shared-pill">共有情報</span>'
             : `<form class="label-edit-form" data-store-id="${escapeHtml(note.storeId)}">
                 <input type="text" value="${escapeHtml(note.storeLabel || note.storeName || "")}" aria-label="店舗ラベル" required />
                 <button class="btn btn-ghost" type="submit">変更</button>
               </form>`;
+          const actionLabel = note.isShared ? "非表示" : "削除";
+          const shareControl = note.isShared
+            ? ""
+            : `<label class="share-toggle">
+                <input type="checkbox" data-action="toggle-share" ${note.shareEnabled ? "checked" : ""} />
+                同じ店舗のユーザーへ共有
+              </label>`;
           row.innerHTML = `
             <div class="discount-main">
               <small class="muted">店舗</small>
@@ -2969,7 +2993,8 @@
               <small class="muted">買い時</small>
               <span>${escapeHtml(describeSaleSchedule(note))}</span>
               ${note.note ? `<small>${escapeHtml(note.note)}</small>` : ""}
-              <button class="delete-btn" type="button" data-action="delete-discount">削除</button>
+              ${shareControl}
+              <button class="delete-btn" type="button" data-action="delete-discount">${actionLabel}</button>
             </div>
           `;
           row.querySelector('[data-action="delete-discount"]').addEventListener("click", async () => {
@@ -2994,6 +3019,20 @@
               );
             } catch {
               setStatus("error", "店舗ラベルをSupabaseへ保存できませんでした。");
+            }
+          });
+          row.querySelector('[data-action="toggle-share"]')?.addEventListener("change", async (event) => {
+            const checked = event.currentTarget.checked;
+            updateLocalNoteShare(note.storeId, note.id, checked);
+            try {
+              await updateNoteShareInSupabase(note.id, checked);
+              setStatus("ready", checked
+                ? "この割引情報を同じ店舗のユーザーへ共有する設定にしました。"
+                : "この割引情報の共有を停止しました。");
+            } catch {
+              updateLocalNoteShare(note.storeId, note.id, !checked);
+              event.currentTarget.checked = !checked;
+              setStatus("error", "共有設定をSupabaseへ保存できませんでした。SQLを確認してください。");
             }
           });
           elements.discountList.appendChild(row);

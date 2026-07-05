@@ -77,7 +77,7 @@ button {
 
 .top-bar {
   display: grid;
-  grid-template-columns: minmax(240px, 1.35fr) minmax(170px, 0.75fr) repeat(3, minmax(135px, 0.55fr));
+  grid-template-columns: minmax(230px, 1.35fr) minmax(165px, 0.75fr) repeat(4, minmax(126px, 0.55fr));
   gap: 14px;
   align-items: stretch;
   padding: 16px;
@@ -190,6 +190,10 @@ h3 {
 
 .income strong {
   color: var(--green);
+}
+
+.daily-budget strong {
+  color: var(--sky);
 }
 
 .remaining.is-over strong {
@@ -898,9 +902,108 @@ h3 {
 }
 
 .saving-flow,
-.ranking-list {
+.ranking-list,
+.fixed-cost-list,
+.shopping-list,
+.discount-candidates {
   display: grid;
   gap: 10px;
+}
+
+.fixed-cost-form,
+.shopping-form {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(96px, 0.7fr) minmax(120px, 0.85fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.fixed-cost-form label,
+.shopping-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.fixed-cost-form input,
+.fixed-cost-form select,
+.shopping-form input,
+.shopping-form select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fffdf7;
+  color: var(--ink);
+  outline: 0;
+}
+
+.fixed-cost-item,
+.shopping-item,
+.discount-candidate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.fixed-cost-item {
+  grid-template-columns: minmax(0, 1fr) auto 40px;
+}
+
+.shopping-item.is-done {
+  opacity: 0.62;
+}
+
+.shopping-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.shopping-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--mint);
+}
+
+.shopping-main {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.shopping-main strong,
+.fixed-cost-item strong,
+.discount-candidate strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shopping-meta,
+.fixed-cost-item small,
+.discount-candidate small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.discount-candidate {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-color: #ffd6cc;
+  background: #fff8f4;
 }
 
 .saving-row {
@@ -1018,7 +1121,7 @@ h3 {
 
   .view-tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
   }
 
@@ -1135,6 +1238,11 @@ h3 {
   }
 
   .saving-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .fixed-cost-form,
+  .shopping-form {
     grid-template-columns: 1fr;
   }
 
@@ -1741,11 +1849,16 @@ h3 {
           <span>残り予算</span>
           <strong id="remainingBudget">¥0</strong>
         </div>
+        <div class="stat-tile daily-budget">
+          <span>今日から1日あたり</span>
+          <strong id="dailyBudget">¥0</strong>
+        </div>
       </header>
 
       <nav class="view-tabs" aria-label="ページ切り替え">
         <button class="tab-button is-active" type="button" data-view="calendarView">カレンダー</button>
         <button class="tab-button" type="button" data-view="reportView">今月の分析</button>
+        <button class="tab-button" type="button" data-view="shoppingView">買い物メモ</button>
       </nav>
       <div id="globalBudgetAlert" class="budget-alert global-budget-alert" hidden></div>
 
@@ -1825,6 +1938,31 @@ h3 {
             <div id="categorySummary" class="category-summary"></div>
           </section>
 
+          <section class="report-section">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Fixed</p>
+                <h2>固定費</h2>
+              </div>
+            </div>
+            <form id="fixedCostForm" class="fixed-cost-form">
+              <label>
+                内容
+                <input id="fixedCostTitle" type="text" maxlength="32" placeholder="例: スマホ代" required>
+              </label>
+              <label>
+                金額
+                <input id="fixedCostAmount" type="number" inputmode="numeric" min="1" step="1" placeholder="2980" required>
+              </label>
+              <label>
+                ジャンル
+                <select id="fixedCostCategory" required></select>
+              </label>
+              <button class="primary-button" type="submit">追加</button>
+            </form>
+            <div id="fixedCostList" class="fixed-cost-list"></div>
+          </section>
+
           <section class="report-section wide">
             <div class="section-head">
               <div>
@@ -1843,6 +1981,46 @@ h3 {
               </div>
             </div>
             <div id="incomeList" class="expense-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="shoppingView" class="view-page report-page" aria-label="買い物メモ">
+        <div class="report-grid">
+          <section class="report-section wide">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Shopping</p>
+                <h2>買い物メモ</h2>
+              </div>
+              <span id="shoppingCount" class="report-note">0件</span>
+            </div>
+            <form id="shoppingForm" class="shopping-form">
+              <label>
+                買うもの
+                <input id="shoppingTitle" type="text" maxlength="40" placeholder="例: 牛乳" required>
+              </label>
+              <label>
+                目安金額
+                <input id="shoppingAmount" type="number" inputmode="numeric" min="0" step="1" placeholder="198">
+              </label>
+              <label>
+                ジャンル
+                <select id="shoppingCategory" required></select>
+              </label>
+              <button class="primary-button" type="submit">追加</button>
+            </form>
+            <div id="shoppingList" class="shopping-list"></div>
+          </section>
+
+          <section class="report-section">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Discounts</p>
+                <h2>割引候補</h2>
+              </div>
+            </div>
+            <div id="discountCandidates" class="discount-candidates"></div>
           </section>
         </div>
       </section>
@@ -1929,11 +2107,13 @@ h3 {
     <script>
 const categories = [
   { id: "food", label: "食料品", color: "#1f8f8b" },
+  { id: "daily-spend", label: "一日の支出", color: "#f59e0b" },
   { id: "daily", label: "日用品", color: "#60a5fa" },
   { id: "transport", label: "交通", color: "#72b7f2" },
   { id: "study", label: "学習", color: "#9a7bd1" },
   { id: "fashion", label: "服・美容", color: "#818cf8" },
   { id: "fun", label: "遊び", color: "#22c55e" },
+  { id: "unknown", label: "不明", color: "#94a3b8" },
   { id: "other", label: "その他", color: "#6b7780" }
 ];
 
@@ -1947,6 +2127,8 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndueHBoanJpY293enhia3dubWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDk5ODMsImV4cCI6MjA5NzQ4NTk4M30.p6lu6gNpdkTg0Nvnxj05m2tHbYeihYP7jFPdIEWfSxo";
 const HOUSEHOLD_RECORDS_TABLE = "nsp_household_records";
 const HOUSEHOLD_BUDGETS_TABLE = "nsp_household_budgets";
+const HOUSEHOLD_FIXED_COSTS_TABLE = "nsp_household_fixed_costs";
+const HOUSEHOLD_SHOPPING_TABLE = "nsp_household_shopping_items";
 const SESSION_KEY = "kaimono-clock-session-v2";
 const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
 const THEME_KEY = "kaimono-clock-theme";
@@ -2018,9 +2200,11 @@ const state = {
   expenses: loadJson("monthMateExpenses", []),
   incomes: loadJson("monthMateIncomes", []),
   discounts: [],
+  fixedCosts: loadJson("monthMateFixedCosts", []),
+  shoppingItems: loadJson("monthMateShoppingItems", []),
   monthlyBudgets: loadJson("monthMateMonthlyBudgets", {}),
   categoryBudgets: normalizeCategoryBudgets(loadJson("monthMateCategoryBudgets", {})),
-  activeView: new URLSearchParams(location.search).get("view") === "report" ? "reportView" : "calendarView"
+  activeView: viewFromQuery(new URLSearchParams(location.search).get("view"))
 };
 
 const els = {
@@ -2028,6 +2212,7 @@ const els = {
   spent: document.querySelector("#spentTotal"),
   incomeTotal: document.querySelector("#incomeTotal"),
   remaining: document.querySelector("#remainingBudget"),
+  dailyBudget: document.querySelector("#dailyBudget"),
   remainingTile: document.querySelector(".remaining"),
   tabs: document.querySelectorAll(".tab-button"),
   views: document.querySelectorAll(".view-page"),
@@ -2056,6 +2241,18 @@ const els = {
   list: document.querySelector("#expenseList"),
   incomeList: document.querySelector("#incomeList"),
   ledgerTitle: document.querySelector("#ledgerTitle"),
+  fixedCostForm: document.querySelector("#fixedCostForm"),
+  fixedCostTitle: document.querySelector("#fixedCostTitle"),
+  fixedCostAmount: document.querySelector("#fixedCostAmount"),
+  fixedCostCategory: document.querySelector("#fixedCostCategory"),
+  fixedCostList: document.querySelector("#fixedCostList"),
+  shoppingForm: document.querySelector("#shoppingForm"),
+  shoppingTitle: document.querySelector("#shoppingTitle"),
+  shoppingAmount: document.querySelector("#shoppingAmount"),
+  shoppingCategory: document.querySelector("#shoppingCategory"),
+  shoppingList: document.querySelector("#shoppingList"),
+  shoppingCount: document.querySelector("#shoppingCount"),
+  discountCandidates: document.querySelector("#discountCandidates"),
   emptyTemplate: document.querySelector("#emptyTemplate"),
   monthlyChart: document.querySelector("#monthlyChart"),
   currentSaving: document.querySelector("#currentSaving"),
@@ -2071,12 +2268,16 @@ async function init() {
   els.category.innerHTML = categories
     .map((category) => `<option value="${category.id}">${category.label}</option>`)
     .join("");
+  els.fixedCostCategory.innerHTML = els.category.innerHTML;
+  els.shoppingCategory.innerHTML = els.category.innerHTML;
 
   document.querySelector("#prevMonth").addEventListener("click", () => moveMonth(-1));
   document.querySelector("#nextMonth").addEventListener("click", () => moveMonth(1));
   els.budget.addEventListener("input", updateBudget);
   els.form.addEventListener("submit", addExpense);
   els.incomeForm.addEventListener("submit", addIncome);
+  els.fixedCostForm.addEventListener("submit", addFixedCost);
+  els.shoppingForm.addEventListener("submit", addShoppingItemFromForm);
   els.closeModal.addEventListener("click", closeEntryModal);
   els.modal.addEventListener("click", (event) => {
     if (event.target === els.modal) closeEntryModal();
@@ -2218,6 +2419,8 @@ async function signOut() {
   state.expenses = [];
   state.incomes = [];
   state.discounts = [];
+  state.fixedCosts = [];
+  state.shoppingItems = [];
   state.monthlyBudgets = {};
   state.categoryBudgets = {};
   render();
@@ -2260,6 +2463,14 @@ function saveCategoryBudgets() {
   localStorage.setItem("monthMateCategoryBudgets", JSON.stringify(state.categoryBudgets));
 }
 
+function saveFixedCosts() {
+  localStorage.setItem("monthMateFixedCosts", JSON.stringify(state.fixedCosts));
+}
+
+function saveShoppingItems() {
+  localStorage.setItem("monthMateShoppingItems", JSON.stringify(state.shoppingItems));
+}
+
 function recordToRow(item, type) {
   return {
     id: item.id,
@@ -2282,14 +2493,66 @@ function rowToRecord(row) {
   };
 }
 
+function fixedCostToRow(item) {
+  return {
+    id: item.id,
+    user_id: currentUserId(),
+    title: item.title,
+    amount: item.amount,
+    category: item.category,
+    active: item.active !== false
+  };
+}
+
+function rowToFixedCost(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    amount: Number(row.amount),
+    category: row.category,
+    active: row.active !== false
+  };
+}
+
+function shoppingItemToRow(item) {
+  return {
+    id: item.id,
+    user_id: currentUserId(),
+    title: item.title,
+    amount: item.amount || null,
+    category: item.category,
+    store_name: item.storeName || null,
+    store_label: item.storeLabel || null,
+    source_discount_id: item.sourceDiscountId || null,
+    checked: Boolean(item.checked)
+  };
+}
+
+function rowToShoppingItem(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    amount: row.amount == null ? 0 : Number(row.amount),
+    category: row.category,
+    storeName: row.store_name || "",
+    storeLabel: row.store_label || "",
+    sourceDiscountId: row.source_discount_id || "",
+    checked: Boolean(row.checked)
+  };
+}
+
 async function loadHouseholdFromSupabase() {
   if (!currentUserId()) return;
-  const [records, budgets] = await Promise.all([
+  const [records, budgets, fixedCosts, shoppingItems] = await Promise.all([
     supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?select=*&order=record_date.desc`),
-    supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=*`)
+    supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=*`),
+    supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?select=*&order=created_at.desc`).catch(() => []),
+    supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?select=*&order=created_at.desc`).catch(() => [])
   ]);
   state.expenses = (records || []).filter((row) => row.record_type === "expense").map(rowToRecord);
   state.incomes = (records || []).filter((row) => row.record_type === "income").map(rowToRecord);
+  state.fixedCosts = (fixedCosts || []).map(rowToFixedCost);
+  state.shoppingItems = (shoppingItems || []).map(rowToShoppingItem);
   state.monthlyBudgets = {};
   state.categoryBudgets = {};
   (budgets || []).forEach((row) => {
@@ -2298,6 +2561,8 @@ async function loadHouseholdFromSupabase() {
   });
   saveExpenses();
   saveIncomes();
+  saveFixedCosts();
+  saveShoppingItems();
   saveMonthlyBudgets();
   saveCategoryBudgets();
 }
@@ -2306,6 +2571,8 @@ async function migrateHouseholdLocalIfRemoteEmpty() {
   if (!currentUserId()) return;
   const remoteRecords = await supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?select=id&limit=1`);
   const remoteBudgets = await supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=id&limit=1`);
+  const remoteFixedCosts = await supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?select=id&limit=1`).catch(() => []);
+  const remoteShoppingItems = await supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?select=id&limit=1`).catch(() => []);
   const localRecords = [
     ...state.expenses.map((item) => recordToRow(item, "expense")),
     ...state.incomes.map((item) => recordToRow(item, "income"))
@@ -2330,6 +2597,20 @@ async function migrateHouseholdLocalIfRemoteEmpty() {
       body: JSON.stringify(budgetRows)
     });
   }
+  if (!remoteFixedCosts?.length && state.fixedCosts.length) {
+    await supabaseRequest(HOUSEHOLD_FIXED_COSTS_TABLE, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(state.fixedCosts.map(fixedCostToRow))
+    }).catch(() => null);
+  }
+  if (!remoteShoppingItems?.length && state.shoppingItems.length) {
+    await supabaseRequest(HOUSEHOLD_SHOPPING_TABLE, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(state.shoppingItems.map(shoppingItemToRow))
+    }).catch(() => null);
+  }
 }
 
 async function syncHouseholdRecord(item, type) {
@@ -2344,6 +2625,40 @@ async function syncHouseholdRecord(item, type) {
 async function deleteHouseholdRecord(id) {
   if (!currentUserId()) return;
   await supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" }
+  });
+}
+
+async function syncFixedCost(item) {
+  if (!currentUserId()) return;
+  await supabaseRequest(HOUSEHOLD_FIXED_COSTS_TABLE, {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(fixedCostToRow(item))
+  });
+}
+
+async function deleteFixedCostFromSupabase(id) {
+  if (!currentUserId()) return;
+  await supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" }
+  });
+}
+
+async function syncShoppingItem(item) {
+  if (!currentUserId()) return;
+  await supabaseRequest(HOUSEHOLD_SHOPPING_TABLE, {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(shoppingItemToRow(item))
+  });
+}
+
+async function deleteShoppingItemFromSupabase(id) {
+  if (!currentUserId()) return;
+  await supabaseRequest(`${HOUSEHOLD_SHOPPING_TABLE}?id=eq.${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: { Prefer: "return=minimal" }
   });
@@ -2448,6 +2763,83 @@ function addIncome(event) {
   renderModalDayList();
 }
 
+function addFixedCost(event) {
+  event.preventDefault();
+  const item = {
+    id: crypto.randomUUID(),
+    title: els.fixedCostTitle.value.trim(),
+    amount: Math.max(0, Number(els.fixedCostAmount.value) || 0),
+    category: els.fixedCostCategory.value,
+    active: true
+  };
+  if (!item.title || item.amount <= 0) return;
+  state.fixedCosts.push(item);
+  saveFixedCosts();
+  syncFixedCost(item).catch(() => null);
+  els.fixedCostForm.reset();
+  render();
+}
+
+function deleteFixedCost(id) {
+  state.fixedCosts = state.fixedCosts.filter((item) => item.id !== id);
+  saveFixedCosts();
+  deleteFixedCostFromSupabase(id).catch(() => null);
+  render();
+}
+
+function addShoppingItemFromForm(event) {
+  event.preventDefault();
+  const item = {
+    id: crypto.randomUUID(),
+    title: els.shoppingTitle.value.trim(),
+    amount: Math.max(0, Number(els.shoppingAmount.value) || 0),
+    category: els.shoppingCategory.value,
+    checked: false,
+    storeName: "",
+    storeLabel: "",
+    sourceDiscountId: ""
+  };
+  if (!item.title) return;
+  state.shoppingItems.unshift(item);
+  saveShoppingItems();
+  syncShoppingItem(item).catch(() => null);
+  els.shoppingForm.reset();
+  renderShopping();
+}
+
+function addShoppingItemFromDiscount(discount) {
+  const item = {
+    id: crypto.randomUUID(),
+    title: discount.name || "商品名なし",
+    amount: Number(discount.price || 0),
+    category: guessShoppingCategory(discount),
+    checked: false,
+    storeName: discount.storeName || "",
+    storeLabel: discount.storeLabel || "",
+    sourceDiscountId: discount.id || ""
+  };
+  state.shoppingItems.unshift(item);
+  saveShoppingItems();
+  syncShoppingItem(item).catch(() => null);
+  renderShopping();
+}
+
+function toggleShoppingItem(id, checked) {
+  const item = state.shoppingItems.find((entry) => entry.id === id);
+  if (!item) return;
+  item.checked = checked;
+  saveShoppingItems();
+  syncShoppingItem(item).catch(() => null);
+  renderShopping();
+}
+
+function deleteShoppingItem(id) {
+  state.shoppingItems = state.shoppingItems.filter((item) => item.id !== id);
+  saveShoppingItems();
+  deleteShoppingItemFromSupabase(id).catch(() => null);
+  renderShopping();
+}
+
 function deleteExpense(id) {
   state.expenses = state.expenses.filter((expense) => expense.id !== id);
   saveExpenses();
@@ -2507,10 +2899,12 @@ function setView(viewId, updateHash = true) {
     view.classList.toggle("is-active", view.id === viewId);
   });
   if (updateHash) {
-    const url = viewId === "reportView" ? `${location.pathname}?view=report` : location.pathname;
+    const viewParam = viewId === "reportView" ? "report" : viewId === "shoppingView" ? "shopping" : "";
+    const url = viewParam ? `${location.pathname}?view=${viewParam}` : location.pathname;
     history.replaceState(null, "", url);
   }
   renderReports();
+  if (viewId === "shoppingView") renderShopping();
 }
 
 function render() {
@@ -2519,8 +2913,10 @@ function render() {
   renderCalendar();
   renderTotals();
   renderSummary();
+  renderFixedCosts();
   renderList();
   renderIncomeList();
+  renderShopping();
   renderReports();
 }
 
@@ -2570,19 +2966,21 @@ function renderCalendar() {
 }
 
 function renderTotals() {
-  const spent = sum(currentMonthExpenses());
+  const spent = currentMonthExpenseTotal();
   const income = sum(currentMonthIncomes());
   const remaining = currentBudget() - spent;
   els.spent.textContent = yen.format(spent);
   els.incomeTotal.textContent = yen.format(income);
   els.remaining.textContent = yen.format(remaining);
+  els.dailyBudget.textContent = yen.format(Math.floor(remaining / remainingDaysInViewMonth()));
   els.remainingTile.classList.toggle("is-over", remaining < 0);
 }
 
 function renderSummary() {
   const monthExpenses = currentMonthExpenses();
+  const fixedTotal = currentFixedCostTotal();
   const budgets = currentCategoryBudgets();
-  const total = Math.max(sum(monthExpenses), 1);
+  const total = Math.max(sum(monthExpenses) + fixedTotal, 1);
   const categoryBudgetTotal = categories.reduce((amount, category) => {
     return amount + (Number(budgets[category.id]) || 0);
   }, 0);
@@ -2599,7 +2997,8 @@ function renderSummary() {
   els.globalBudgetAlert.textContent = overflowMessage;
 
   categories.forEach((category) => {
-    const categoryTotal = sum(monthExpenses.filter((item) => item.category === category.id));
+    const categoryTotal = sum(monthExpenses.filter((item) => item.category === category.id))
+      + sum(currentFixedCosts().filter((item) => item.category === category.id));
     const categoryBudget = Number(budgets[category.id]) || 0;
     const basis = Math.max(categoryBudget, total, 1);
     const width = Math.min(100, Math.round((categoryTotal / basis) * 100));
@@ -2625,8 +3024,42 @@ function renderSummary() {
   });
 }
 
+function renderFixedCosts() {
+  els.fixedCostList.innerHTML = "";
+  const items = currentFixedCosts();
+  if (!items.length) {
+    const empty = els.emptyTemplate.content.cloneNode(true);
+    empty.querySelector("p").textContent = "固定費はまだありません。スマホ代やサブスクを追加できます。";
+    els.fixedCostList.append(empty);
+    return;
+  }
+  items.forEach((item) => {
+    const category = categories.find((entry) => entry.id === item.category) || categories.at(-1);
+    const row = document.createElement("article");
+    row.className = "fixed-cost-item";
+    row.innerHTML = `
+      <div class="shopping-main">
+        <strong>${escapeHtml(item.title)}</strong>
+        <small><span class="category-pill" style="background:${category.color}">${category.label}</span></small>
+      </div>
+      <strong>${yen.format(item.amount)}</strong>
+      <button class="delete-button" type="button" aria-label="${escapeHtml(item.title)}を削除">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
+        </svg>
+      </button>
+    `;
+    row.querySelector("button").addEventListener("click", () => deleteFixedCost(item.id));
+    els.fixedCostList.append(row);
+  });
+}
+
 function renderList() {
-  const sorted = [...currentMonthExpenses()].sort((a, b) => b.date.localeCompare(a.date));
+  const fixedRows = currentFixedCosts().map((item) => ({ ...item, type: "fixed" }));
+  const sorted = [
+    ...fixedRows,
+    ...currentMonthExpenses().map((item) => ({ ...item, type: "expense" }))
+  ].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
   els.ledgerTitle.textContent = "今月の明細";
   els.list.innerHTML = "";
 
@@ -2639,7 +3072,11 @@ function renderList() {
 
   sorted.forEach((expense) => {
     const category = categories.find((item) => item.id === expense.category) || categories.at(-1);
-    els.list.append(createRecordRow(expense, category, "expense"));
+    if (expense.type === "fixed") {
+      els.list.append(createFixedCostRecordRow(expense, category));
+    } else {
+      els.list.append(createRecordRow(expense, category, "expense"));
+    }
   });
 }
 
@@ -2703,6 +3140,26 @@ function createDiscountRow(item) {
   return row;
 }
 
+function createFixedCostRecordRow(item, category) {
+  const row = document.createElement("article");
+  row.className = "expense-item compact-record";
+  row.innerHTML = `
+    <span class="date-pill">固定費</span>
+    <div class="expense-main">
+      <strong>${escapeHtml(item.title)}</strong>
+      <span class="category-pill" style="background:${category.color}">${category.label}</span>
+    </div>
+    <strong class="expense-amount">${yen.format(item.amount)}</strong>
+    <button class="delete-button" type="button" aria-label="${escapeHtml(item.title)}を削除">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
+      </svg>
+    </button>
+  `;
+  row.querySelector("button").addEventListener("click", () => deleteFixedCost(item.id));
+  return row;
+}
+
 function createRecordRow(item, category, type, compact = false) {
   const row = document.createElement("article");
   row.className = `expense-item ${type === "income" ? "income-item" : ""} ${compact ? "compact-record" : ""}`;
@@ -2730,6 +3187,72 @@ function createRecordRow(item, category, type, compact = false) {
   return row;
 }
 
+function renderShopping() {
+  if (!els.shoppingList) return;
+  const activeItems = [...state.shoppingItems].sort((a, b) => Number(a.checked) - Number(b.checked));
+  els.shoppingCount.textContent = `${activeItems.filter((item) => !item.checked).length}件`;
+  els.shoppingList.innerHTML = "";
+  if (!activeItems.length) {
+    const empty = els.emptyTemplate.content.cloneNode(true);
+    empty.querySelector("p").textContent = "買い物メモはまだありません。割引候補からも追加できます。";
+    els.shoppingList.append(empty);
+  } else {
+    activeItems.forEach((item) => {
+      const category = categories.find((entry) => entry.id === item.category) || categories.at(-1);
+      const row = document.createElement("article");
+      row.className = `shopping-item ${item.checked ? "is-done" : ""}`;
+      row.innerHTML = `
+        <label class="shopping-check">
+          <input type="checkbox" ${item.checked ? "checked" : ""}>
+          <span class="shopping-main">
+            <strong>${escapeHtml(item.title)}</strong>
+            <span class="shopping-meta">
+              ${item.amount ? `${yen.format(item.amount)} / ` : ""}${escapeHtml(item.storeLabel || item.storeName || category.label)}
+            </span>
+          </span>
+        </label>
+        <button class="delete-button" type="button" aria-label="${escapeHtml(item.title)}を削除">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
+          </svg>
+        </button>
+      `;
+      row.querySelector("input").addEventListener("change", (event) => {
+        toggleShoppingItem(item.id, event.target.checked);
+      });
+      row.querySelector("button").addEventListener("click", () => deleteShoppingItem(item.id));
+      els.shoppingList.append(row);
+    });
+  }
+
+  renderDiscountCandidates();
+}
+
+function renderDiscountCandidates() {
+  els.discountCandidates.innerHTML = "";
+  const existingKeys = new Set(state.shoppingItems.map((item) => `${item.title}:${item.sourceDiscountId || item.storeName}`));
+  const candidates = discountCandidates().filter((item) => !existingKeys.has(`${item.name}:${item.id || item.storeName}`)).slice(0, 8);
+  if (!candidates.length) {
+    const empty = els.emptyTemplate.content.cloneNode(true);
+    empty.querySelector("p").textContent = "保存済み割引から候補が見つかるとここに表示されます。";
+    els.discountCandidates.append(empty);
+    return;
+  }
+  candidates.forEach((discount) => {
+    const row = document.createElement("article");
+    row.className = "discount-candidate";
+    row.innerHTML = `
+      <div class="shopping-main">
+        <strong>${escapeHtml(discount.name || "商品名なし")}</strong>
+        <small>${escapeHtml(discount.storeLabel || discount.storeName || "店舗名なし")} / ${yen.format(Number(discount.price || 0))}</small>
+      </div>
+      <button class="ghost-button" type="button">追加</button>
+    `;
+    row.querySelector("button").addEventListener("click", () => addShoppingItemFromDiscount(discount));
+    els.discountCandidates.append(row);
+  });
+}
+
 function renderReports() {
   renderMonthlyChart();
   renderSavingFlow();
@@ -2746,7 +3269,7 @@ function renderMonthlyChart() {
   els.monthlyChart.innerHTML = months
     .map((month) => {
       const budget = budgetForMonth(month.year, month.month);
-      const spent = sum(expensesForMonth(month.year, month.month));
+      const spent = sum(expensesForMonth(month.year, month.month)) + fixedCostTotalForMonth(month.year, month.month);
       const budgetHeight = Math.max(4, Math.round((budget / maxValue) * 100));
       const spentHeight = Math.max(spent > 0 ? 4 : 0, Math.round((spent / maxValue) * 100));
       const remaining = budget - spent;
@@ -2767,7 +3290,7 @@ function renderMonthlyChart() {
 function renderSavingFlow() {
   const months = lastMonths(6);
   const flows = months.map((month) => {
-    const spent = sum(expensesForMonth(month.year, month.month));
+    const spent = sum(expensesForMonth(month.year, month.month)) + fixedCostTotalForMonth(month.year, month.month);
     const income = sum(incomesForMonth(month.year, month.month));
     return {
       ...month,
@@ -2803,7 +3326,8 @@ function renderRanking() {
   const ranking = categories
     .map((category) => ({
       ...category,
-      spent: sum(monthExpenses.filter((expense) => expense.category === category.id)),
+      spent: sum(monthExpenses.filter((expense) => expense.category === category.id))
+        + sum(currentFixedCosts().filter((expense) => expense.category === category.id)),
       budget: Number(budgets[category.id]) || 0
     }))
     .sort((a, b) => b.spent - a.spent);
@@ -2831,6 +3355,22 @@ function renderRanking() {
 
 function currentMonthExpenses() {
   return expensesForMonth(state.viewDate.getFullYear(), state.viewDate.getMonth());
+}
+
+function currentMonthExpenseTotal() {
+  return sum(currentMonthExpenses()) + currentFixedCostTotal();
+}
+
+function currentFixedCosts() {
+  return state.fixedCosts.filter((item) => item.active !== false);
+}
+
+function currentFixedCostTotal() {
+  return sum(currentFixedCosts());
+}
+
+function fixedCostTotalForMonth() {
+  return currentFixedCostTotal();
 }
 
 function currentMonthIncomes() {
@@ -2877,6 +3417,43 @@ function discountsForDate(dateKey) {
     }
     return discount.saleDate === dateKey;
   });
+}
+
+function discountCandidates() {
+  const seen = new Set();
+  return [...state.discounts]
+    .filter((discount) => discount?.name)
+    .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
+    .filter((discount) => {
+      const key = `${discount.name}:${discount.storeName}:${discount.price}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function guessShoppingCategory(discount) {
+  const text = `${discount.name || ""} ${discount.storeName || ""}`.toLowerCase();
+  if (/牛乳|米|パン|卵|肉|魚|野菜|弁当|食品|スーパー/.test(text)) return "food";
+  if (/洗剤|紙|薬|シャンプー|ドラッグ|日用品/.test(text)) return "daily";
+  return "unknown";
+}
+
+function remainingDaysInViewMonth() {
+  const year = state.viewDate.getFullYear();
+  const month = state.viewDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  if (today.getFullYear() === year && today.getMonth() === month) {
+    return Math.max(1, daysInMonth - today.getDate() + 1);
+  }
+  return daysInMonth;
+}
+
+function viewFromQuery(value) {
+  if (value === "report") return "reportView";
+  if (value === "shopping") return "shoppingView";
+  return "calendarView";
 }
 
 function normalizeCsvNumbers(value, min, max) {
