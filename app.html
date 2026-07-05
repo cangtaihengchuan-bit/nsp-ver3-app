@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <title>Kaimono Clock | 学生のための買い時メモアプリ</title>
+    <title>Kaimono Clock | 学生のための割引メモアプリ</title>
     <meta
       name="description"
       content="バイト代や仕送りをムダ買いで減らさない。現在地の近くにあるスーパーとドラッグストアを取得し、店舗ごとに品物の価格とセール日を保存できる学生向けアプリ。"
@@ -1658,7 +1658,7 @@
         </div>
         <div class="experience-links">
           <a class="experience-link" href="./index.html">体験トップ</a>
-          <a class="experience-link primary" href="./app.html" aria-current="page">買い時メモ</a>
+          <a class="experience-link primary" href="./app.html" aria-current="page">割引メモ</a>
           <a class="experience-link" href="./household.html">家計簿体験</a>
         </div>
       </section>
@@ -1671,7 +1671,7 @@
             <a class="back-link" href="./index.html">体験トップ</a>
           </div>
           <h1>
-            <span>近くの買い時を保存して、家計簿にも反映。</span>
+            <span>近くの割引情報を保存して、家計簿にも反映。</span>
           </h1>
         </div>
         <div class="hero-controls">
@@ -1694,7 +1694,7 @@
               </select>
             </label>
           </div>
-          <button id="locateBtn" class="btn btn-primary" type="button">近くの買い時を探す</button>
+          <button id="locateBtn" class="btn btn-primary" type="button">近くの割引を探す</button>
           <button id="savedLocationBtn" class="btn btn-ghost" type="button">登録地点から探す</button>
           <a class="btn btn-ghost" href="./household.html">家計簿を体験する</a>
           <button id="sampleBtn" class="btn btn-ghost" type="button">サンプルで試す</button>
@@ -1704,7 +1704,7 @@
       <section class="status" aria-live="polite">
         <div class="status-message">
           <span id="statusDot" class="dot"></span>
-          <span id="statusText">位置情報を許可すると、近くのスーパーとドラッグストアから買い時候補を探します。</span>
+          <span id="statusText">位置情報を許可すると、近くのスーパーとドラッグストアから割引候補を探します。</span>
         </div>
         <button id="clearAllBtn" class="btn btn-ghost" type="button">保存メモを全削除</button>
       </section>
@@ -1713,7 +1713,7 @@
         <div class="panel-head">
           <div>
             <h2>登録地点からお店を探す</h2>
-            <p class="muted">自宅や学校などを保存して、出先からでもその周辺の買い時を確認できます。</p>
+            <p class="muted">自宅や学校などを保存して、出先からでもその周辺の割引情報を確認できます。</p>
           </div>
         </div>
         <form id="locationForm" class="location-form">
@@ -1741,7 +1741,7 @@
           <strong id="metricStores">0</strong>
         </div>
         <div class="metric-card">
-          <span>買い時メモ</span>
+          <span>割引メモ</span>
           <strong id="metricNotes">0</strong>
         </div>
         <div class="metric-card">
@@ -2990,7 +2990,7 @@
             </div>
             <div class="discount-price">¥${Number(note.price || 0).toLocaleString("ja-JP")}</div>
             <div class="discount-sub">
-              <small class="muted">買い時</small>
+              <small class="muted">割引日</small>
               <span>${escapeHtml(describeSaleSchedule(note))}</span>
               ${note.note ? `<small>${escapeHtml(note.note)}</small>` : ""}
               ${shareControl}
