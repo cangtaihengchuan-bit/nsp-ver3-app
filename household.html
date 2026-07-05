@@ -177,6 +177,30 @@ h3 {
   font-weight: 900;
 }
 
+.budget-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.budget-action {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 8px;
+  color: var(--mint-dark);
+  background: white;
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.budget-action:hover {
+  border-color: var(--mint);
+  background: #edf7f4;
+}
+
 .stat-tile strong {
   display: block;
   margin-top: 8px;
@@ -1835,6 +1859,11 @@ h3 {
             <span>¥</span>
             <input id="monthlyBudget" type="number" inputmode="numeric" min="0" step="500" value="50000">
           </div>
+          <div class="budget-actions" aria-label="予算の反映範囲">
+            <button class="budget-action" id="applyBudgetCurrent" type="button">この月</button>
+            <button class="budget-action" id="applyBudgetFuture" type="button">以降</button>
+            <button class="budget-action" id="applyBudgetAll" type="button">全月</button>
+          </div>
         </div>
 
         <div class="stat-tile">
@@ -2209,6 +2238,9 @@ const state = {
 
 const els = {
   budget: document.querySelector("#monthlyBudget"),
+  applyBudgetCurrent: document.querySelector("#applyBudgetCurrent"),
+  applyBudgetFuture: document.querySelector("#applyBudgetFuture"),
+  applyBudgetAll: document.querySelector("#applyBudgetAll"),
   spent: document.querySelector("#spentTotal"),
   incomeTotal: document.querySelector("#incomeTotal"),
   remaining: document.querySelector("#remainingBudget"),
@@ -2274,6 +2306,9 @@ async function init() {
   document.querySelector("#prevMonth").addEventListener("click", () => moveMonth(-1));
   document.querySelector("#nextMonth").addEventListener("click", () => moveMonth(1));
   els.budget.addEventListener("input", updateBudget);
+  els.applyBudgetCurrent.addEventListener("click", () => applyBudgetToCurrentMonth());
+  els.applyBudgetFuture.addEventListener("click", () => applyBudgetFromCurrentMonth());
+  els.applyBudgetAll.addEventListener("click", () => applyBudgetToAllMonths());
   els.form.addEventListener("submit", addExpense);
   els.incomeForm.addEventListener("submit", addIncome);
   els.fixedCostForm.addEventListener("submit", addFixedCost);
@@ -2678,6 +2713,21 @@ async function syncBudgetForMonth(key) {
   });
 }
 
+async function syncBudgetsForMonths(keys) {
+  if (!currentUserId() || !keys.length) return;
+  const rows = keys.map((key) => ({
+    user_id: currentUserId(),
+    month_key: key,
+    monthly_budget: Number(state.monthlyBudgets[key]) || 0,
+    category_budgets: state.categoryBudgets[key] || {}
+  }));
+  await supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?on_conflict=user_id,month_key`, {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(rows)
+  });
+}
+
 function currentBudget() {
   return budgetForMonth(state.viewDate.getFullYear(), state.viewDate.getMonth());
 }
@@ -2693,12 +2743,58 @@ function currentCategoryBudgets() {
 }
 
 function updateBudget() {
+  applyBudgetToCurrentMonth({ silent: true });
+}
+
+function budgetInputAmount() {
+  return Math.max(0, Number(els.budget.value) || 0);
+}
+
+function applyBudgetToCurrentMonth({ silent = false } = {}) {
   const key = monthKey(state.viewDate);
-  state.monthlyBudgets[key] = Math.max(0, Number(els.budget.value) || 0);
+  state.monthlyBudgets[key] = budgetInputAmount();
   saveMonthlyBudgets();
   localStorage.setItem("monthMateBudget", String(state.monthlyBudgets[key]));
   syncBudgetForMonth(key).catch(() => null);
   render();
+  if (!silent) showBudgetMessage("この月の予算だけを更新しました。");
+}
+
+function applyBudgetFromCurrentMonth() {
+  const amount = budgetInputAmount();
+  const keys = monthKeysFrom(state.viewDate, 36);
+  knownMonthKeys()
+    .filter((key) => key >= monthKey(state.viewDate))
+    .forEach((key) => keys.add(key));
+  keys.forEach((key) => {
+    state.monthlyBudgets[key] = amount;
+  });
+  saveMonthlyBudgets();
+  syncBudgetsForMonths([...keys]).catch(() => null);
+  render();
+  showBudgetMessage("選択中の月以降の予算をまとめて更新しました。");
+}
+
+function applyBudgetToAllMonths() {
+  const amount = budgetInputAmount();
+  const keys = knownMonthKeys();
+  keys.add(monthKey(state.viewDate));
+  keys.forEach((key) => {
+    state.monthlyBudgets[key] = amount;
+  });
+  localStorage.setItem("monthMateBudget", String(amount));
+  saveMonthlyBudgets();
+  syncBudgetsForMonths([...keys]).catch(() => null);
+  render();
+  showBudgetMessage("過去と今後を含む全体の予算をまとめて更新しました。");
+}
+
+function showBudgetMessage(message) {
+  els.globalBudgetAlert.hidden = false;
+  els.globalBudgetAlert.textContent = message;
+  window.setTimeout(() => {
+    renderSummary();
+  }, 2200);
 }
 
 function updateCategoryBudget(categoryId, value) {
@@ -3494,6 +3590,26 @@ function lastMonths(count) {
 
 function monthKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function knownMonthKeys() {
+  const keys = new Set([
+    ...Object.keys(state.monthlyBudgets || {}),
+    ...Object.keys(state.categoryBudgets || {})
+  ]);
+  state.expenses.forEach((item) => keys.add(monthKey(dateFromInput(item.date))));
+  state.incomes.forEach((item) => keys.add(monthKey(dateFromInput(item.date))));
+  keys.add(monthKey(new Date()));
+  return keys;
+}
+
+function monthKeysFrom(startDate, count) {
+  const keys = new Set();
+  const base = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  for (let index = 0; index < count; index += 1) {
+    keys.add(monthKey(new Date(base.getFullYear(), base.getMonth() + index, 1)));
+  }
+  return keys;
 }
 
 function toDateInput(date) {
