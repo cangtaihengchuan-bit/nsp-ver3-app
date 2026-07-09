@@ -271,6 +271,32 @@ h3 {
   color: var(--green);
 }
 
+.pace-advice {
+  display: grid;
+  gap: 12px;
+}
+
+.pace-advice-main {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.55;
+}
+
+.pace-advice-detail {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.pace-advice-detail span {
+  display: block;
+}
+
 .daily-budget strong {
   color: var(--coral);
   font-size: 1.7rem;
@@ -2062,6 +2088,18 @@ h3 {
 
       <section id="reportView" class="view-page report-page" aria-label="今月の分析">
         <div class="report-grid">
+          <section class="report-section wide pace-advice" aria-label="今月のペース判定">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Pace</p>
+                <h2>今月のペース</h2>
+              </div>
+              <span id="paceAdviceStatus" class="report-note">確認中</span>
+            </div>
+            <p id="paceAdviceText" class="pace-advice-main">今月の出費ペースを確認しています。</p>
+            <div id="paceAdviceDetail" class="pace-advice-detail"></div>
+          </section>
+
           <section class="report-section wide">
             <div class="section-head">
               <div>
@@ -2236,9 +2274,11 @@ const HOUSEHOLD_RECORDS_TABLE = "nsp_household_records";
 const HOUSEHOLD_BUDGETS_TABLE = "nsp_household_budgets";
 const HOUSEHOLD_FIXED_COSTS_TABLE = "nsp_household_fixed_costs";
 const HOUSEHOLD_SHOPPING_TABLE = "nsp_household_shopping_items";
+const HOUSEHOLD_RECURRING_TABLE = "nsp_household_recurring_items";
 const SESSION_KEY = "kaimono-clock-session-v2";
 const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
 const THEME_KEY = "kaimono-clock-theme";
+const RECURRING_KEY = "monthMateRecurringItems";
 const sessionPill = document.querySelector("#sessionPill");
 const householdLogoutBtn = document.querySelector("#householdLogoutBtn");
 const householdAuthForm = document.querySelector("#householdAuthForm");
@@ -2312,6 +2352,7 @@ const state = {
   incomes: loadJson("monthMateIncomes", []),
   discounts: [],
   fixedCosts: loadJson("monthMateFixedCosts", []),
+  recurringItems: loadJson(RECURRING_KEY, []),
   monthlyBudgets: loadJson("monthMateMonthlyBudgets", {}),
   categoryBudgets: normalizeCategoryBudgets(loadJson("monthMateCategoryBudgets", {})),
   activeView: viewFromQuery(new URLSearchParams(location.search).get("view"))
@@ -2354,6 +2395,9 @@ const els = {
   modalDayList: document.querySelector("#modalDayList"),
   closeModal: document.querySelector("#closeModal"),
   summary: document.querySelector("#categorySummary"),
+  paceAdviceStatus: document.querySelector("#paceAdviceStatus"),
+  paceAdviceText: document.querySelector("#paceAdviceText"),
+  paceAdviceDetail: document.querySelector("#paceAdviceDetail"),
   globalBudgetAlert: document.querySelector("#globalBudgetAlert"),
   count: document.querySelector("#entryCount"),
   list: document.querySelector("#expenseList"),
@@ -2587,6 +2631,7 @@ async function signOut() {
   state.incomes = [];
   state.discounts = [];
   state.fixedCosts = [];
+  state.recurringItems = [];
   state.monthlyBudgets = {};
   state.categoryBudgets = {};
   render();
@@ -2633,6 +2678,10 @@ function saveFixedCosts() {
   localStorage.setItem("monthMateFixedCosts", JSON.stringify(state.fixedCosts));
 }
 
+function saveRecurringItems() {
+  localStorage.setItem(RECURRING_KEY, JSON.stringify(state.recurringItems));
+}
+
 function recordToRow(item, type) {
   return {
     id: item.id,
@@ -2676,16 +2725,29 @@ function rowToFixedCost(row) {
   };
 }
 
+function rowToRecurringItem(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    frequencyDays: Number(row.frequency_days) || 1,
+    estimatedAmount: row.estimated_amount == null ? 0 : Number(row.estimated_amount),
+    lastPurchasedDate: row.last_purchased_date,
+    active: row.active !== false
+  };
+}
+
 async function loadHouseholdFromSupabase() {
   if (!currentUserId()) return;
-  const [records, budgets, fixedCosts] = await Promise.all([
+  const [records, budgets, fixedCosts, recurringItems] = await Promise.all([
     supabaseRequest(`${HOUSEHOLD_RECORDS_TABLE}?select=*&order=record_date.desc`),
     supabaseRequest(`${HOUSEHOLD_BUDGETS_TABLE}?select=*`),
-    supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?select=*&order=created_at.desc`).catch(() => [])
+    supabaseRequest(`${HOUSEHOLD_FIXED_COSTS_TABLE}?select=*&order=created_at.desc`).catch(() => []),
+    supabaseRequest(`${HOUSEHOLD_RECURRING_TABLE}?select=*&order=created_at.desc`).catch(() => [])
   ]);
   state.expenses = (records || []).filter((row) => row.record_type === "expense").map(rowToRecord);
   state.incomes = (records || []).filter((row) => row.record_type === "income").map(rowToRecord);
   state.fixedCosts = (fixedCosts || []).map(rowToFixedCost);
+  state.recurringItems = (recurringItems || []).map(rowToRecurringItem);
   state.monthlyBudgets = {};
   state.categoryBudgets = {};
   (budgets || []).forEach((row) => {
@@ -2695,6 +2757,7 @@ async function loadHouseholdFromSupabase() {
   saveExpenses();
   saveIncomes();
   saveFixedCosts();
+  saveRecurringItems();
   saveMonthlyBudgets();
   saveCategoryBudgets();
 }
@@ -3038,6 +3101,7 @@ function setView(viewId, updateHash = true) {
 
 function render() {
   state.discounts = loadDiscountCache();
+  state.recurringItems = loadJson(RECURRING_KEY, state.recurringItems);
   els.budget.value = currentBudget();
   renderCalendar();
   renderTotals();
@@ -3305,6 +3369,50 @@ function createRecordRow(item, category, type, compact = false) {
 
 function renderReports() {
   renderMonthlyChart();
+  renderPaceAdvice();
+}
+
+function renderPaceAdvice() {
+  const budget = currentBudget();
+  const year = state.viewDate.getFullYear();
+  const month = state.viewDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const elapsedDays = elapsedDaysInViewMonth();
+  const fixedTotal = currentFixedCostTotal();
+  const monthExpenses = currentMonthExpenses();
+  const variableSpent = sum(monthExpenses);
+  const spentTotal = variableSpent + fixedTotal;
+  const dailyAverage = variableSpent / Math.max(1, elapsedDays);
+  const projectedVariable = Math.round(dailyAverage * daysInMonth);
+  const scheduledItems = recurringItemsInViewMonth();
+  const scheduledKnownTotal = sum(scheduledItems.filter((item) => Number(item.estimatedAmount) > 0).map((item) => ({
+    amount: item.estimatedAmount
+  })));
+  const unknownScheduledCount = scheduledItems.filter((item) => !Number(item.estimatedAmount)).length;
+  const projectedTotal = projectedVariable + fixedTotal + scheduledKnownTotal;
+  const projectedLeft = budget - projectedTotal;
+  const currentLeft = budget - spentTotal;
+
+  let status = "順調";
+  let message = "このペースなら、今月は予算内に収まりそうです。";
+  if (currentLeft < 0) {
+    status = "超過";
+    message = "予算を超過しました。";
+  } else if (projectedLeft < 0) {
+    status = "注意";
+    message = "予定より少し出費が多いです。節約をお勧めします。";
+  } else if (scheduledItems.length) {
+    const nextItem = scheduledItems[0];
+    message = `このペースなら、${formatShortDate(nextItem.nextDate)}の${nextItem.title}を買っても${yen.format(Math.floor(projectedLeft))}ほど余ります。`;
+  }
+
+  els.paceAdviceStatus.textContent = status;
+  els.paceAdviceText.textContent = message;
+  els.paceAdviceDetail.innerHTML = [
+    `今月の支出見込み: ${yen.format(projectedVariable + fixedTotal)} / 予算: ${yen.format(budget)}`,
+    scheduledKnownTotal > 0 ? `繰り返し購入予定: ${yen.format(scheduledKnownTotal)}を計算に含めました。` : "金額入りの繰り返し購入予定はありません。",
+    unknownScheduledCount ? `目安金額が未入力の予定が${unknownScheduledCount}件あります。` : ""
+  ].filter(Boolean).map((text) => `<span>${escapeHtml(text)}</span>`).join("");
 }
 
 function renderMonthlyChart() {
@@ -3410,6 +3518,41 @@ function remainingDaysInViewMonth() {
     return Math.max(1, daysInMonth - today.getDate() + 1);
   }
   return daysInMonth;
+}
+
+function elapsedDaysInViewMonth() {
+  const year = state.viewDate.getFullYear();
+  const month = state.viewDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  if (today.getFullYear() === year && today.getMonth() === month) {
+    return Math.max(1, today.getDate());
+  }
+  const firstOfView = new Date(year, month, 1);
+  const firstOfCurrent = new Date(today.getFullYear(), today.getMonth(), 1);
+  return firstOfView < firstOfCurrent ? daysInMonth : 1;
+}
+
+function nextPurchaseDate(item) {
+  const last = dateFromInput(item.lastPurchasedDate || "");
+  if (!last || Number.isNaN(last.getTime())) return "";
+  last.setDate(last.getDate() + Math.max(1, Number(item.frequencyDays) || 1));
+  return toDateInput(last);
+}
+
+function recurringItemsInViewMonth() {
+  const year = state.viewDate.getFullYear();
+  const month = state.viewDate.getMonth();
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 0);
+  return (state.recurringItems || [])
+    .filter((item) => item.active !== false)
+    .map((item) => ({ ...item, nextDate: nextPurchaseDate(item) }))
+    .filter((item) => {
+      const date = dateFromInput(item.nextDate || "");
+      return date && !Number.isNaN(date.getTime()) && date >= start && date <= end;
+    })
+    .sort((a, b) => String(a.nextDate).localeCompare(String(b.nextDate)));
 }
 
 function viewFromQuery(value) {

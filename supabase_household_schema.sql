@@ -50,11 +50,15 @@ create table if not exists public.nsp_household_recurring_items (
   user_id uuid not null references auth.users(id) on delete cascade,
   title text not null,
   frequency_days integer not null default 30 check (frequency_days > 0),
+  estimated_amount numeric,
   last_purchased_date date not null,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.nsp_household_recurring_items
+  add column if not exists estimated_amount numeric;
 
 alter table public.nsp_household_records enable row level security;
 alter table public.nsp_household_budgets enable row level security;

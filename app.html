@@ -828,11 +828,17 @@
 
       .delete-btn {
         min-height: 34px;
-        border: 1px solid #ffd6cc;
+        border: 1px solid #b72f18;
         border-radius: 8px;
-        background: #fff4f1;
-        color: #b7442d;
+        background: #c63a22;
+        color: #fff;
         font-weight: 900;
+        box-shadow: 0 8px 16px rgba(183, 47, 24, 0.18);
+      }
+
+      .delete-btn:hover {
+        background: #a92c18;
+        border-color: #8f2415;
       }
 
       .blank-row {
@@ -2876,6 +2882,7 @@
             </div>
           `;
           card.querySelector(".delete-btn").addEventListener("click", async () => {
+            if (!confirm(`${note.name || "この割引情報"}を${actionLabel}しますか？`)) return;
             await deleteNoteEverywhere(store.id, note.id);
           });
           elements.notes.appendChild(card);
@@ -3000,6 +3007,7 @@
             </div>
           `;
           row.querySelector('[data-action="delete-discount"]').addEventListener("click", async () => {
+            if (!confirm(`${note.name || "この割引情報"}を${actionLabel}しますか？`)) return;
             await deleteNoteEverywhere(note.storeId, note.id);
           });
           row.querySelector(".label-edit-form")?.addEventListener("submit", async (event) => {
