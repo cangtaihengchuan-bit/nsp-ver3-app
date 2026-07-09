@@ -141,7 +141,9 @@
 
       .nav-auth-form input,
       .shopping-form input,
-      .shopping-form select {
+      .shopping-form select,
+      .recurring-form input,
+      .recurring-form select {
         min-height: 38px;
         min-width: 0;
         border: 1px solid var(--line);
@@ -192,6 +194,7 @@
         color: var(--muted);
         font-weight: 800;
         line-height: 1.55;
+        overflow-wrap: anywhere;
       }
 
       .layout {
@@ -203,6 +206,10 @@
 
       .panel {
         padding: 16px;
+      }
+
+      .recurring-panel {
+        grid-column: 1 / -1;
       }
 
       .section-head {
@@ -226,7 +233,15 @@
         margin-bottom: 14px;
       }
 
-      .shopping-form label {
+      .recurring-form {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) minmax(92px, 0.55fr) minmax(130px, 0.7fr) auto;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .shopping-form label,
+      .recurring-form label {
         display: grid;
         gap: 6px;
         color: var(--muted);
@@ -235,13 +250,15 @@
       }
 
       .shopping-list,
-      .discount-candidates {
+      .discount-candidates,
+      .recurring-list {
         display: grid;
         gap: 10px;
       }
 
       .shopping-item,
       .discount-candidate,
+      .recurring-item,
       .blank-row {
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -249,7 +266,8 @@
       }
 
       .shopping-item,
-      .discount-candidate {
+      .discount-candidate,
+      .recurring-item {
         display: grid;
         grid-template-columns: 1fr auto;
         gap: 10px;
@@ -311,6 +329,80 @@
         gap: 8px;
       }
 
+      .recurring-calendar {
+        margin-bottom: 14px;
+      }
+
+      .calendar-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .calendar-head button {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .weekday-row,
+      .mini-calendar {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .weekday-row {
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .mini-day {
+        min-height: 54px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 5px;
+        background: #fff;
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .mini-day.is-muted {
+        opacity: 0.38;
+      }
+
+      .mini-day.is-today {
+        border-color: var(--mint);
+        box-shadow: inset 0 0 0 1px var(--mint);
+      }
+
+      .mini-day.has-due {
+        background: rgba(255, 138, 107, 0.13);
+      }
+
+      .due-dot {
+        display: block;
+        width: 100%;
+        margin-top: 4px;
+        overflow: hidden;
+        color: #9d3f2d;
+        font-size: 0.62rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .delete-button,
       .candidate-actions button {
         display: grid;
@@ -339,6 +431,24 @@
         color: var(--muted);
         font-weight: 800;
         line-height: 1.55;
+      }
+
+      .recurring-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .recurring-actions button {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 10px;
+        background: #fff;
+        color: var(--ink);
+        font-weight: 900;
+        cursor: pointer;
+        white-space: nowrap;
       }
 
       html[data-theme="warm"] {
@@ -395,9 +505,19 @@
         }
 
         .nav-auth-form,
-        .shopping-form {
+        .shopping-form,
+        .recurring-form {
           grid-template-columns: 1fr;
           width: 100%;
+        }
+
+        .recurring-item {
+          grid-template-columns: 1fr;
+        }
+
+        .mini-day {
+          min-height: 48px;
+          padding: 4px;
         }
       }
     </style>
@@ -438,7 +558,7 @@
           <p class="eyebrow">Shopping</p>
           <h1>買い物メモ</h1>
         </div>
-        <p class="top-note">必要なものを手早く残し、割引メモにある商品は候補から追加できます。</p>
+        <p class="top-note">割引メモの商品を候補から追加できます。</p>
       </header>
 
       <main class="layout">
@@ -478,6 +598,45 @@
           </div>
           <div id="discountCandidates" class="discount-candidates"></div>
         </aside>
+
+        <section class="panel recurring-panel" aria-label="繰り返し購入品">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Repeat</p>
+              <h2>繰り返し購入</h2>
+            </div>
+            <span id="recurringCount" class="report-note">0件</span>
+          </div>
+          <form id="recurringForm" class="recurring-form">
+            <label>
+              品名
+              <input id="recurringTitle" type="text" maxlength="40" placeholder="例: トイレットペーパー" required>
+            </label>
+            <label>
+              頻度
+              <input id="recurringFrequency" type="number" inputmode="numeric" min="1" step="1" placeholder="30" required>
+            </label>
+            <label>
+              最後に買った日
+              <input id="recurringLastDate" type="date" required>
+            </label>
+            <button class="primary-button" type="submit">登録</button>
+          </form>
+
+          <div class="recurring-calendar" aria-label="次回購入カレンダー">
+            <div class="calendar-head">
+              <button id="prevRecurringMonth" type="button" aria-label="前の月">‹</button>
+              <strong id="recurringMonthLabel">2026年7月</strong>
+              <button id="nextRecurringMonth" type="button" aria-label="次の月">›</button>
+            </div>
+            <div class="weekday-row" aria-hidden="true">
+              <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+            </div>
+            <div id="recurringCalendar" class="mini-calendar"></div>
+          </div>
+
+          <div id="recurringList" class="recurring-list"></div>
+        </section>
       </main>
     </div>
 
@@ -500,10 +659,12 @@
       const SUPABASE_ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndueHBoanJpY293enhia3dubWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDk5ODMsImV4cCI6MjA5NzQ4NTk4M30.p6lu6gNpdkTg0Nvnxj05m2tHbYeihYP7jFPdIEWfSxo";
       const HOUSEHOLD_SHOPPING_TABLE = "nsp_household_shopping_items";
+      const HOUSEHOLD_RECURRING_TABLE = "nsp_household_recurring_items";
       const SESSION_KEY = "kaimono-clock-session-v2";
       const DISCOUNT_CACHE_KEY_PREFIX = "kaimono-clock-discount-cache-v2";
       const THEME_KEY = "kaimono-clock-theme";
       const SHOPPING_KEY = "monthMateShoppingItems";
+      const RECURRING_KEY = "monthMateRecurringItems";
 
       const yen = new Intl.NumberFormat("ja-JP", {
         style: "currency",
@@ -513,7 +674,9 @@
 
       const state = {
         shoppingItems: loadJson(SHOPPING_KEY, []),
-        discounts: []
+        recurringItems: loadJson(RECURRING_KEY, []),
+        discounts: [],
+        recurringViewDate: new Date()
       };
 
       const els = {
@@ -531,6 +694,16 @@
         count: document.querySelector("#shoppingCount"),
         candidates: document.querySelector("#discountCandidates"),
         candidateCount: document.querySelector("#candidateCount"),
+        recurringForm: document.querySelector("#recurringForm"),
+        recurringTitle: document.querySelector("#recurringTitle"),
+        recurringFrequency: document.querySelector("#recurringFrequency"),
+        recurringLastDate: document.querySelector("#recurringLastDate"),
+        recurringCount: document.querySelector("#recurringCount"),
+        recurringMonthLabel: document.querySelector("#recurringMonthLabel"),
+        recurringCalendar: document.querySelector("#recurringCalendar"),
+        recurringList: document.querySelector("#recurringList"),
+        prevRecurringMonth: document.querySelector("#prevRecurringMonth"),
+        nextRecurringMonth: document.querySelector("#nextRecurringMonth"),
         emptyTemplate: document.querySelector("#emptyTemplate")
       };
 
@@ -542,7 +715,11 @@
         els.category.innerHTML = categories
           .map((category) => `<option value="${category.id}">${category.label}</option>`)
           .join("");
+        els.recurringLastDate.value = dateKey(new Date());
         els.form.addEventListener("submit", addShoppingItemFromForm);
+        els.recurringForm.addEventListener("submit", addRecurringItemFromForm);
+        els.prevRecurringMonth.addEventListener("click", () => moveRecurringMonth(-1));
+        els.nextRecurringMonth.addEventListener("click", () => moveRecurringMonth(1));
         els.authForm.addEventListener("submit", async (event) => {
           event.preventDefault();
           try {
@@ -566,6 +743,8 @@
           try {
             await migrateShoppingLocalIfRemoteEmpty();
             await loadShoppingFromSupabase();
+            await migrateRecurringLocalIfRemoteEmpty();
+            await loadRecurringFromSupabase();
           } catch {
             els.sessionPill.textContent = `${els.sessionPill.textContent} / 同期未設定`;
           }
@@ -679,6 +858,8 @@
         saveSession(data);
         await migrateShoppingLocalIfRemoteEmpty();
         await loadShoppingFromSupabase();
+        await migrateRecurringLocalIfRemoteEmpty();
+        await loadRecurringFromSupabase();
         render();
       }
 
@@ -689,6 +870,8 @@
           saveSession(data);
           await migrateShoppingLocalIfRemoteEmpty();
           await loadShoppingFromSupabase();
+          await migrateRecurringLocalIfRemoteEmpty();
+          await loadRecurringFromSupabase();
           render();
         } else {
           els.sessionPill.textContent = "登録メールを確認してください";
@@ -708,6 +891,7 @@
         }
         saveSession(null);
         state.shoppingItems = [];
+        state.recurringItems = [];
         render();
       }
 
@@ -794,8 +978,69 @@
         });
       }
 
+      function recurringItemToRow(item) {
+        return {
+          id: item.id,
+          user_id: currentUserId(),
+          title: item.title,
+          frequency_days: item.frequencyDays,
+          last_purchased_date: item.lastPurchasedDate,
+          active: item.active !== false
+        };
+      }
+
+      function rowToRecurringItem(row) {
+        return {
+          id: row.id,
+          title: row.title,
+          frequencyDays: Number(row.frequency_days) || 1,
+          lastPurchasedDate: row.last_purchased_date,
+          active: row.active !== false
+        };
+      }
+
+      async function loadRecurringFromSupabase() {
+        if (!currentUserId()) return;
+        const rows = await supabaseRequest(`${HOUSEHOLD_RECURRING_TABLE}?select=*&order=created_at.desc`).catch(() => []);
+        state.recurringItems = (rows || []).map(rowToRecurringItem);
+        saveRecurringItems();
+      }
+
+      async function migrateRecurringLocalIfRemoteEmpty() {
+        if (!currentUserId()) return;
+        const remoteRows = await supabaseRequest(`${HOUSEHOLD_RECURRING_TABLE}?select=id&limit=1`).catch(() => []);
+        if (!remoteRows?.length && state.recurringItems.length) {
+          await supabaseRequest(HOUSEHOLD_RECURRING_TABLE, {
+            method: "POST",
+            headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+            body: JSON.stringify(state.recurringItems.map(recurringItemToRow))
+          }).catch(() => null);
+        }
+      }
+
+      async function syncRecurringItem(item) {
+        if (!currentUserId()) return;
+        await supabaseRequest(HOUSEHOLD_RECURRING_TABLE, {
+          method: "POST",
+          headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+          body: JSON.stringify(recurringItemToRow(item))
+        });
+      }
+
+      async function deleteRecurringItemFromSupabase(id) {
+        if (!currentUserId()) return;
+        await supabaseRequest(`${HOUSEHOLD_RECURRING_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          headers: { Prefer: "return=minimal" }
+        });
+      }
+
       function saveShoppingItems() {
         localStorage.setItem(SHOPPING_KEY, JSON.stringify(state.shoppingItems));
+      }
+
+      function saveRecurringItems() {
+        localStorage.setItem(RECURRING_KEY, JSON.stringify(state.recurringItems));
       }
 
       function loadDiscountCache() {
@@ -864,10 +1109,54 @@
         renderShopping();
       }
 
+      function addRecurringItemFromForm(event) {
+        event.preventDefault();
+        const item = {
+          id: crypto.randomUUID(),
+          title: els.recurringTitle.value.trim(),
+          frequencyDays: Math.max(1, Number(els.recurringFrequency.value) || 1),
+          lastPurchasedDate: els.recurringLastDate.value,
+          active: true
+        };
+        if (!item.title || !item.lastPurchasedDate) return;
+        state.recurringItems.unshift(item);
+        saveRecurringItems();
+        syncRecurringItem(item).catch(() => null);
+        els.recurringForm.reset();
+        els.recurringLastDate.value = dateKey(new Date());
+        renderRecurring();
+      }
+
+      function markRecurringPurchased(id) {
+        const item = state.recurringItems.find((entry) => entry.id === id);
+        if (!item) return;
+        item.lastPurchasedDate = dateKey(new Date());
+        saveRecurringItems();
+        syncRecurringItem(item).catch(() => null);
+        renderRecurring();
+      }
+
+      function deleteRecurringItem(id) {
+        state.recurringItems = state.recurringItems.filter((item) => item.id !== id);
+        saveRecurringItems();
+        deleteRecurringItemFromSupabase(id).catch(() => null);
+        renderRecurring();
+      }
+
+      function moveRecurringMonth(delta) {
+        state.recurringViewDate = new Date(
+          state.recurringViewDate.getFullYear(),
+          state.recurringViewDate.getMonth() + delta,
+          1
+        );
+        renderRecurringCalendar();
+      }
+
       function render() {
         state.discounts = loadDiscountCache();
         renderShopping();
         renderDiscountCandidates();
+        renderRecurring();
       }
 
       function renderShopping() {
@@ -945,6 +1234,80 @@
         });
       }
 
+      function renderRecurring() {
+        renderRecurringCalendar();
+        renderRecurringList();
+      }
+
+      function renderRecurringCalendar() {
+        const year = state.recurringViewDate.getFullYear();
+        const month = state.recurringViewDate.getMonth();
+        els.recurringMonthLabel.textContent = `${year}年${month + 1}月`;
+        els.recurringCalendar.innerHTML = "";
+
+        const first = new Date(year, month, 1);
+        const start = new Date(year, month, 1 - first.getDay());
+        const todayKey = dateKey(new Date());
+        const dueByDate = new Map();
+        state.recurringItems.forEach((item) => {
+          const nextKey = nextPurchaseDate(item);
+          if (!nextKey) return;
+          if (!dueByDate.has(nextKey)) dueByDate.set(nextKey, []);
+          dueByDate.get(nextKey).push(item);
+        });
+
+        for (let index = 0; index < 42; index += 1) {
+          const date = new Date(start);
+          date.setDate(start.getDate() + index);
+          const key = dateKey(date);
+          const dueItems = dueByDate.get(key) || [];
+          const cell = document.createElement("div");
+          cell.className = [
+            "mini-day",
+            date.getMonth() !== month ? "is-muted" : "",
+            key === todayKey ? "is-today" : "",
+            dueItems.length ? "has-due" : ""
+          ].filter(Boolean).join(" ");
+          cell.innerHTML = `
+            <span>${date.getDate()}</span>
+            ${dueItems.slice(0, 2).map((item) => `<span class="due-dot">${escapeHtml(item.title)}</span>`).join("")}
+          `;
+          els.recurringCalendar.append(cell);
+        }
+      }
+
+      function renderRecurringList() {
+        const items = [...state.recurringItems].sort((a, b) => {
+          return String(nextPurchaseDate(a)).localeCompare(String(nextPurchaseDate(b)));
+        });
+        els.recurringCount.textContent = `${items.length}件`;
+        els.recurringList.innerHTML = "";
+        if (!items.length) {
+          const empty = els.emptyTemplate.content.cloneNode(true);
+          empty.querySelector("p").textContent = "繰り返し購入品はまだありません。買う周期があるものを登録してください。";
+          els.recurringList.append(empty);
+          return;
+        }
+        items.forEach((item) => {
+          const nextKey = nextPurchaseDate(item);
+          const row = document.createElement("article");
+          row.className = "recurring-item";
+          row.innerHTML = `
+            <div class="candidate-main">
+              <strong>${escapeHtml(item.title)}</strong>
+              <small>${item.frequencyDays}日ごと / 最後: ${formatDateLabel(item.lastPurchasedDate)} / 次回: ${formatDateLabel(nextKey)}</small>
+            </div>
+            <div class="recurring-actions">
+              <button type="button" data-action="purchased">買った</button>
+              <button type="button" data-action="delete">削除</button>
+            </div>
+          `;
+          row.querySelector('[data-action="purchased"]').addEventListener("click", () => markRecurringPurchased(item.id));
+          row.querySelector('[data-action="delete"]').addEventListener("click", () => deleteRecurringItem(item.id));
+          els.recurringList.append(row);
+        });
+      }
+
       function scheduleLabel(note) {
         if (note.saleMode === "weekly") return "毎週";
         if (note.saleMode === "monthly") return "毎月";
@@ -967,6 +1330,33 @@
           '"': "&quot;",
           "'": "&#039;"
         }[char]));
+      }
+
+      function nextPurchaseDate(item) {
+        const last = parseDate(item.lastPurchasedDate);
+        if (!last) return "";
+        last.setDate(last.getDate() + Math.max(1, Number(item.frequencyDays) || 1));
+        return dateKey(last);
+      }
+
+      function parseDate(value) {
+        if (!value) return null;
+        const [year, month, day] = String(value).split("-").map(Number);
+        if (!year || !month || !day) return null;
+        return new Date(year, month - 1, day);
+      }
+
+      function dateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function formatDateLabel(value) {
+        const date = parseDate(value);
+        if (!date) return "未設定";
+        return `${date.getMonth() + 1}/${date.getDate()}`;
       }
     </script>
   </body>

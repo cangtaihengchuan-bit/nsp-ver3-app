@@ -177,6 +177,61 @@ h3 {
   font-weight: 900;
 }
 
+.budget-display {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.budget-display strong {
+  color: var(--ink);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.budget-edit-toggle {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--mint-dark);
+  background: white;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.budget-editor {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.budget-editor[hidden] {
+  display: none;
+}
+
+.budget-stepper {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  gap: 6px;
+  align-items: center;
+}
+
+.budget-stepper button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 1.2rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .budget-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -214,6 +269,20 @@ h3 {
 
 .income strong {
   color: var(--green);
+}
+
+.daily-budget strong {
+  color: var(--coral);
+  font-size: 1.7rem;
+}
+
+.daily-budget small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .daily-budget strong {
@@ -1150,7 +1219,7 @@ h3 {
 
   .view-tabs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
   }
 
@@ -1158,6 +1227,16 @@ h3 {
     flex-basis: 56px;
     width: 56px;
     height: 56px;
+  }
+
+  .budget-display {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .budget-edit-toggle {
+    width: 100%;
   }
 
   .calendar-section,
@@ -1912,15 +1991,26 @@ h3 {
         </div>
 
         <div class="budget-panel">
-          <label for="monthlyBudget">この月の予算</label>
-          <div class="budget-input">
-            <span>¥</span>
-            <input id="monthlyBudget" type="number" inputmode="numeric" min="0" step="500" value="50000">
+          <span>この月の予算</span>
+          <div class="budget-display">
+            <strong id="budgetValue">¥0</strong>
+            <button class="budget-edit-toggle" id="openBudgetEditor" type="button">予算を変更</button>
           </div>
-          <div class="budget-actions" aria-label="予算の反映範囲">
-            <button class="budget-action" id="applyBudgetCurrent" type="button">この月</button>
-            <button class="budget-action" id="applyBudgetFuture" type="button">以降</button>
-            <button class="budget-action" id="applyBudgetAll" type="button">全月</button>
+          <div id="budgetEditor" class="budget-editor" hidden>
+            <label for="monthlyBudget">変更後の予算</label>
+            <div class="budget-stepper">
+              <button id="budgetStepDown" type="button" aria-label="予算を500円下げる">−</button>
+              <div class="budget-input">
+                <span>¥</span>
+                <input id="monthlyBudget" type="number" inputmode="numeric" min="0" step="500" value="50000">
+              </div>
+              <button id="budgetStepUp" type="button" aria-label="予算を500円上げる">＋</button>
+            </div>
+            <div class="budget-actions" aria-label="予算の反映範囲">
+              <button class="budget-action" id="applyBudgetCurrent" type="button">当月のみ</button>
+              <button class="budget-action" id="applyBudgetFuture" type="button">当月以降</button>
+              <button class="budget-action" id="applyBudgetAll" type="button">全期間</button>
+            </div>
           </div>
         </div>
 
@@ -1937,8 +2027,9 @@ h3 {
           <strong id="remainingBudget">¥0</strong>
         </div>
         <div class="stat-tile daily-budget">
-          <span>今日から1日あたり</span>
+          <span>今日使える目安</span>
           <strong id="dailyBudget">¥0</strong>
+          <small id="dailyBudgetNote">残り日数で日割り</small>
         </div>
       </header>
 
@@ -2228,6 +2319,11 @@ const state = {
 
 const els = {
   budget: document.querySelector("#monthlyBudget"),
+  budgetValue: document.querySelector("#budgetValue"),
+  budgetEditor: document.querySelector("#budgetEditor"),
+  openBudgetEditor: document.querySelector("#openBudgetEditor"),
+  budgetStepDown: document.querySelector("#budgetStepDown"),
+  budgetStepUp: document.querySelector("#budgetStepUp"),
   applyBudgetCurrent: document.querySelector("#applyBudgetCurrent"),
   applyBudgetFuture: document.querySelector("#applyBudgetFuture"),
   applyBudgetAll: document.querySelector("#applyBudgetAll"),
@@ -2235,6 +2331,7 @@ const els = {
   incomeTotal: document.querySelector("#incomeTotal"),
   remaining: document.querySelector("#remainingBudget"),
   dailyBudget: document.querySelector("#dailyBudget"),
+  dailyBudgetNote: document.querySelector("#dailyBudgetNote"),
   remainingTile: document.querySelector(".remaining"),
   tabs: document.querySelectorAll(".tab-button"),
   views: document.querySelectorAll(".view-page"),
@@ -2282,7 +2379,9 @@ async function init() {
 
   document.querySelector("#prevMonth").addEventListener("click", () => moveMonth(-1));
   document.querySelector("#nextMonth").addEventListener("click", () => moveMonth(1));
-  els.budget.addEventListener("input", updateBudget);
+  els.openBudgetEditor.addEventListener("click", openBudgetEditor);
+  els.budgetStepDown.addEventListener("click", () => stepBudget(-500));
+  els.budgetStepUp.addEventListener("click", () => stepBudget(500));
   els.applyBudgetCurrent.addEventListener("click", () => applyBudgetToCurrentMonth());
   els.applyBudgetFuture.addEventListener("click", () => applyBudgetFromCurrentMonth());
   els.applyBudgetAll.addEventListener("click", () => applyBudgetToAllMonths());
@@ -2715,22 +2814,35 @@ function currentCategoryBudgets() {
   return state.categoryBudgets[key];
 }
 
-function updateBudget() {
-  applyBudgetToCurrentMonth({ silent: true });
-}
-
 function budgetInputAmount() {
   return Math.max(0, Number(els.budget.value) || 0);
 }
 
-function applyBudgetToCurrentMonth({ silent = false } = {}) {
+function openBudgetEditor() {
+  els.budget.value = currentBudget();
+  els.budgetEditor.hidden = false;
+  els.budget.focus();
+  els.budget.select();
+}
+
+function closeBudgetEditor() {
+  els.budgetEditor.hidden = true;
+}
+
+function stepBudget(delta) {
+  const nextAmount = Math.max(0, budgetInputAmount() + delta);
+  els.budget.value = nextAmount;
+}
+
+function applyBudgetToCurrentMonth() {
   const key = monthKey(state.viewDate);
   state.monthlyBudgets[key] = budgetInputAmount();
   saveMonthlyBudgets();
   localStorage.setItem("monthMateBudget", String(state.monthlyBudgets[key]));
   syncBudgetForMonth(key).catch(() => null);
+  closeBudgetEditor();
   render();
-  if (!silent) showBudgetMessage("この月の予算だけを更新しました。");
+  showBudgetMessage("当月のみの予算を更新しました。");
 }
 
 function applyBudgetFromCurrentMonth() {
@@ -2744,8 +2856,9 @@ function applyBudgetFromCurrentMonth() {
   });
   saveMonthlyBudgets();
   syncBudgetsForMonths([...keys]).catch(() => null);
+  closeBudgetEditor();
   render();
-  showBudgetMessage("選択中の月以降の予算をまとめて更新しました。");
+  showBudgetMessage("当月以降の予算をまとめて更新しました。");
 }
 
 function applyBudgetToAllMonths() {
@@ -2758,8 +2871,9 @@ function applyBudgetToAllMonths() {
   localStorage.setItem("monthMateBudget", String(amount));
   saveMonthlyBudgets();
   syncBudgetsForMonths([...keys]).catch(() => null);
+  closeBudgetEditor();
   render();
-  showBudgetMessage("過去と今後を含む全体の予算をまとめて更新しました。");
+  showBudgetMessage("全期間の予算をまとめて更新しました。");
 }
 
 function showBudgetMessage(message) {
@@ -2982,11 +3096,18 @@ function renderCalendar() {
 function renderTotals() {
   const spent = currentMonthExpenseTotal();
   const income = sum(currentMonthIncomes());
-  const remaining = currentBudget() - spent;
+  const budget = currentBudget();
+  const remaining = budget - spent;
+  const remainingDays = remainingDaysInViewMonth();
+  const dailyAmount = Math.floor(Math.max(0, remaining) / remainingDays);
+  els.budgetValue.textContent = yen.format(budget);
   els.spent.textContent = yen.format(spent);
   els.incomeTotal.textContent = yen.format(income);
   els.remaining.textContent = yen.format(remaining);
-  els.dailyBudget.textContent = yen.format(Math.floor(remaining / remainingDaysInViewMonth()));
+  els.dailyBudget.textContent = yen.format(dailyAmount);
+  els.dailyBudgetNote.textContent = remaining < 0
+    ? "予算を超えています。今日は使わない前提で調整。"
+    : `残り${remainingDays}日で日割り。今日使える目安です。`;
   els.remainingTile.classList.toggle("is-over", remaining < 0);
 }
 
