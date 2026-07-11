@@ -628,7 +628,7 @@ h3 {
 
 .receipt-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 10px;
   align-items: end;
 }
@@ -672,7 +672,7 @@ h3 {
 
 .receipt-row {
   display: grid;
-  grid-template-columns: minmax(96px, 0.7fr) minmax(130px, 1fr) minmax(90px, 0.6fr);
+  grid-template-columns: minmax(96px, 0.7fr) minmax(130px, 1fr) minmax(90px, 0.6fr) auto;
   gap: 8px;
   align-items: center;
 }
@@ -1328,7 +1328,7 @@ h3 {
 
   .view-tabs {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
   }
 
@@ -1432,6 +1432,12 @@ h3 {
     grid-column: 2 / 3;
     grid-row: 1 / 4;
     align-self: center;
+  }
+
+  .receipt-row .delete-button {
+    grid-column: auto;
+    grid-row: auto;
+    width: 100%;
   }
 
   .entry-modal {
@@ -1992,6 +1998,10 @@ h3 {
     html[data-theme] .day-cell,
     html[data-theme] .expense-form input,
     html[data-theme] .expense-form select,
+    html[data-theme] .receipt-form input,
+    html[data-theme] .receipt-meta input,
+    html[data-theme] .receipt-table input,
+    html[data-theme] .receipt-table select,
     html[data-theme] .ghost-button,
     html[data-theme] .category-budget-input input,
     html[data-theme] .expense-item,
@@ -2155,6 +2165,7 @@ h3 {
       <nav class="view-tabs" aria-label="ページ切り替え">
         <button class="tab-button is-active" type="button" data-view="calendarView">カレンダー</button>
         <button class="tab-button" type="button" data-view="reportView">今月の分析</button>
+        <button class="tab-button" type="button" data-view="receiptView">レシートから入力</button>
       </nav>
       <div id="globalBudgetAlert" class="budget-alert global-budget-alert" hidden></div>
 
@@ -2191,35 +2202,6 @@ h3 {
             </div>
             <p id="paceAdviceText" class="pace-advice-main">今月の出費ペースを確認しています。</p>
             <div id="paceAdviceDetail" class="pace-advice-detail"></div>
-          </section>
-
-          <section class="report-section wide receipt-helper" aria-label="レシート読み取り補助">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow">Receipt</p>
-                <h2>レシート入力補助</h2>
-              </div>
-              <span id="receiptStatus" class="report-note">画像を選択</span>
-            </div>
-            <form id="receiptForm" class="receipt-form">
-              <label>
-                レシート画像
-                <input id="receiptImage" type="file" accept="image/*">
-              </label>
-              <button class="primary-button" type="submit">読み取る</button>
-            </form>
-            <div class="receipt-meta">
-              <label>
-                読み取り日付
-                <input id="receiptDate" type="date">
-              </label>
-              <label>
-                読み取り総額
-                <input id="receiptTotal" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
-              </label>
-              <p id="receiptHint" class="receipt-status">OCR結果は必ず確認してから追加してください。</p>
-            </div>
-            <div id="receiptTable" class="receipt-table"></div>
           </section>
 
           <section class="report-section wide">
@@ -2289,6 +2271,41 @@ h3 {
             <div id="incomeList" class="expense-list"></div>
           </section>
         </div>
+      </section>
+
+      <section id="receiptView" class="view-page report-page" aria-label="レシートから入力">
+        <section class="report-section wide receipt-helper" aria-label="レシート読み取り補助">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Receipt</p>
+              <h2>レシート入力補助</h2>
+            </div>
+            <span id="receiptStatus" class="report-note">画像を選択</span>
+          </div>
+          <form id="receiptForm" class="receipt-form">
+            <label>
+              レシート画像
+              <input id="receiptImage" type="file" accept="image/*">
+            </label>
+            <label>
+              カメラで撮る
+              <input id="receiptCamera" type="file" accept="image/*" capture="environment">
+            </label>
+            <button class="primary-button" type="submit">読み取る</button>
+          </form>
+          <div class="receipt-meta">
+            <label>
+              読み取り日付
+              <input id="receiptDate" type="date">
+            </label>
+            <label>
+              読み取り総額
+              <input id="receiptTotal" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+            </label>
+            <p id="receiptHint" class="receipt-status">OCR結果は必ず確認してから追加してください。</p>
+          </div>
+          <div id="receiptTable" class="receipt-table"></div>
+        </section>
       </section>
 
     </div>
@@ -2534,6 +2551,7 @@ const els = {
   fixedCostList: document.querySelector("#fixedCostList"),
   receiptForm: document.querySelector("#receiptForm"),
   receiptImage: document.querySelector("#receiptImage"),
+  receiptCamera: document.querySelector("#receiptCamera"),
   receiptStatus: document.querySelector("#receiptStatus"),
   receiptDate: document.querySelector("#receiptDate"),
   receiptTotal: document.querySelector("#receiptTotal"),
@@ -2566,6 +2584,12 @@ async function init() {
   els.incomeForm.addEventListener("submit", addIncome);
   els.fixedCostForm.addEventListener("submit", addFixedCost);
   els.receiptForm.addEventListener("submit", readReceiptImage);
+  els.receiptImage.addEventListener("change", () => {
+    if (els.receiptImage.files?.length) els.receiptCamera.value = "";
+  });
+  els.receiptCamera.addEventListener("change", () => {
+    if (els.receiptCamera.files?.length) els.receiptImage.value = "";
+  });
   els.closeModal.addEventListener("click", closeEntryModal);
   els.modal.addEventListener("click", (event) => {
     if (event.target === els.modal) closeEntryModal();
@@ -3169,9 +3193,9 @@ function deleteFixedCost(id) {
 
 async function readReceiptImage(event) {
   event.preventDefault();
-  const file = els.receiptImage.files?.[0];
+  const file = els.receiptImage.files?.[0] || els.receiptCamera.files?.[0];
   if (!file) {
-    setReceiptStatus("画像を選択してください。");
+    setReceiptStatus("画像を選択するか、カメラで撮影してください。");
     renderReceiptRows([]);
     return;
   }
@@ -3268,7 +3292,7 @@ function renderReceiptRows(rows = state.receiptRows) {
   }
   const header = document.createElement("div");
   header.className = "receipt-row header";
-  header.innerHTML = "<span>ジャンル</span><span>品名</span><span>値段</span>";
+  header.innerHTML = "<span>ジャンル</span><span>品名</span><span>値段</span><span>削除</span>";
   els.receiptTable.append(header);
   state.receiptRows.forEach((row, index) => {
     const wrapper = document.createElement("div");
@@ -3277,11 +3301,17 @@ function renderReceiptRows(rows = state.receiptRows) {
       <select data-field="category" aria-label="ジャンル">${categories.map((category) => `<option value="${category.id}" ${category.id === row.category ? "selected" : ""}>${category.label}</option>`).join("")}</select>
       <input data-field="title" type="text" maxlength="40" value="${escapeHtml(row.title || "")}" aria-label="品名">
       <input data-field="amount" type="number" inputmode="numeric" min="0" step="1" value="${Number(row.amount || 0)}" aria-label="値段">
+      <button class="delete-button" type="button" aria-label="${escapeHtml(row.title || "候補")}を削除">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
+        </svg>
+      </button>
     `;
     wrapper.querySelectorAll("[data-field]").forEach((field) => {
       field.addEventListener("input", () => updateReceiptRow(index, wrapper));
       field.addEventListener("change", () => updateReceiptRow(index, wrapper));
     });
+    wrapper.querySelector("button").addEventListener("click", () => deleteReceiptRow(index));
     els.receiptTable.append(wrapper);
   });
   const actions = document.createElement("div");
@@ -3303,6 +3333,12 @@ function receiptRowFromElement(wrapper) {
     title: wrapper.querySelector('[data-field="title"]').value.trim(),
     amount: Math.max(0, Number(wrapper.querySelector('[data-field="amount"]').value) || 0)
   };
+}
+
+function deleteReceiptRow(index) {
+  state.receiptRows = state.receiptRows.filter((_, rowIndex) => rowIndex !== index);
+  renderReceiptRows(state.receiptRows);
+  setReceiptStatus("候補を削除しました。");
 }
 
 function addReceiptRows() {
@@ -3395,7 +3431,7 @@ function setView(viewId, updateHash = true) {
     view.classList.toggle("is-active", view.id === viewId);
   });
   if (updateHash) {
-    const viewParam = viewId === "reportView" ? "report" : "";
+    const viewParam = viewId === "reportView" ? "report" : viewId === "receiptView" ? "receipt" : "";
     const url = viewParam ? `${location.pathname}?view=${viewParam}` : location.pathname;
     history.replaceState(null, "", url);
   }
@@ -3860,6 +3896,7 @@ function recurringItemsInViewMonth() {
 
 function viewFromQuery(value) {
   if (value === "report") return "reportView";
+  if (value === "receipt") return "receiptView";
   return "calendarView";
 }
 
