@@ -658,6 +658,36 @@ h3 {
   outline: 0;
 }
 
+.receipt-camera-picker {
+  position: relative;
+}
+
+.receipt-camera-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.camera-trigger {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #fffdf7;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.camera-file-name {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
 .receipt-meta {
   display: grid;
   grid-template-columns: minmax(120px, 0.6fr) minmax(120px, 0.6fr) 1fr;
@@ -2099,6 +2129,7 @@ h3 {
     html[data-theme] .expense-form input,
     html[data-theme] .expense-form select,
     html[data-theme] .receipt-form input,
+    html[data-theme] .camera-trigger,
     html[data-theme] .receipt-meta input,
     html[data-theme] .receipt-table input,
     html[data-theme] .receipt-table select,
@@ -2388,9 +2419,11 @@ h3 {
               レシート画像
               <input id="receiptImage" type="file" accept="image/*">
             </label>
-            <label>
-              カメラで撮る
+            <label class="receipt-camera-picker">
+              カメラ撮影
               <input id="receiptCamera" type="file" accept="image/*" capture="environment">
+              <span class="camera-trigger">カメラを起動</span>
+              <span id="receiptCameraName" class="camera-file-name">未撮影</span>
             </label>
             <button class="primary-button" type="submit">読み取る</button>
           </form>
@@ -2657,6 +2690,7 @@ const els = {
   receiptForm: document.querySelector("#receiptForm"),
   receiptImage: document.querySelector("#receiptImage"),
   receiptCamera: document.querySelector("#receiptCamera"),
+  receiptCameraName: document.querySelector("#receiptCameraName"),
   receiptStatus: document.querySelector("#receiptStatus"),
   receiptDate: document.querySelector("#receiptDate"),
   receiptTotal: document.querySelector("#receiptTotal"),
@@ -2693,10 +2727,18 @@ async function init() {
   els.fixedCostForm.addEventListener("submit", addFixedCost);
   els.receiptForm.addEventListener("submit", readReceiptImage);
   els.receiptImage.addEventListener("change", () => {
-    if (els.receiptImage.files?.length) els.receiptCamera.value = "";
+    if (els.receiptImage.files?.length) {
+      els.receiptCamera.value = "";
+      els.receiptCameraName.textContent = "未撮影";
+    }
   });
   els.receiptCamera.addEventListener("change", () => {
-    if (els.receiptCamera.files?.length) els.receiptImage.value = "";
+    if (els.receiptCamera.files?.length) {
+      els.receiptImage.value = "";
+      els.receiptCameraName.textContent = "撮影画像を選択済み";
+    } else {
+      els.receiptCameraName.textContent = "未撮影";
+    }
   });
   els.receiptMergeBtn.addEventListener("click", mergeSelectedReceiptRows);
   els.closeModal.addEventListener("click", closeEntryModal);
@@ -3457,11 +3499,14 @@ function renderReceiptRows(rows = state.receiptRows) {
 function renderReceiptActions() {
   const actions = document.createElement("div");
   actions.className = "receipt-actions";
+  const hasRows = state.receiptRows.length > 0;
+  const hasPendingRows = state.receiptRows.some((row) => !row.added);
+  const calendarLabel = hasPendingRows ? "確認した候補をカレンダーへ登録" : hasRows ? "カレンダーへ登録済み" : "確認した候補をカレンダーへ登録";
   actions.innerHTML = `
     <button class="ghost-button" type="button" data-action="add-candidate">読み取れなかった品物を候補に追加</button>
-    <button class="primary-button" type="button" data-action="add-calendar">${state.receiptRows.some((row) => !row.added) ? "確認した候補をカレンダーへ登録" : "カレンダーへ登録済み"}</button>
+    <button class="primary-button" type="button" data-action="add-calendar">${calendarLabel}</button>
   `;
-  actions.querySelector('[data-action="add-calendar"]').disabled = !state.receiptRows.some((row) => !row.added);
+  actions.querySelector('[data-action="add-calendar"]').disabled = !hasPendingRows;
   actions.querySelector('[data-action="add-candidate"]').addEventListener("click", addReceiptCandidateRow);
   actions.querySelector('[data-action="add-calendar"]').addEventListener("click", addReceiptRows);
   els.receiptTable.append(actions);
