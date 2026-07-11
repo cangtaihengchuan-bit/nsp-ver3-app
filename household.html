@@ -621,6 +621,79 @@ h3 {
   gap: 10px;
 }
 
+.receipt-helper {
+  display: grid;
+  gap: 12px;
+}
+
+.receipt-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.receipt-form label,
+.receipt-meta label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.receipt-form input,
+.receipt-meta input,
+.receipt-table input,
+.receipt-table select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #fffdf7;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  outline: 0;
+}
+
+.receipt-meta {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.6fr) minmax(120px, 0.6fr) 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.receipt-table {
+  display: grid;
+  gap: 8px;
+}
+
+.receipt-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.7fr) minmax(130px, 1fr) minmax(90px, 0.6fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.receipt-row.header {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.receipt-status {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.receipt-row.is-added {
+  opacity: 0.58;
+}
+
 .budget-alert {
   margin-bottom: 12px;
   padding: 10px 12px;
@@ -1315,6 +1388,16 @@ h3 {
   .category-budget-status {
     grid-column: 1 / -1;
     text-align: left;
+  }
+
+  .receipt-form,
+  .receipt-meta,
+  .receipt-row {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-row.header {
+    display: none;
   }
 
   .expense-item {
@@ -2100,6 +2183,35 @@ h3 {
             <div id="paceAdviceDetail" class="pace-advice-detail"></div>
           </section>
 
+          <section class="report-section wide receipt-helper" aria-label="レシート読み取り補助">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Receipt</p>
+                <h2>レシート入力補助</h2>
+              </div>
+              <span id="receiptStatus" class="report-note">画像を選択</span>
+            </div>
+            <form id="receiptForm" class="receipt-form">
+              <label>
+                レシート画像
+                <input id="receiptImage" type="file" accept="image/*">
+              </label>
+              <button class="primary-button" type="submit">読み取る</button>
+            </form>
+            <div class="receipt-meta">
+              <label>
+                読み取り日付
+                <input id="receiptDate" type="date">
+              </label>
+              <label>
+                読み取り総額
+                <input id="receiptTotal" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+              </label>
+              <p id="receiptHint" class="receipt-status">OCR結果は必ず確認してから追加してください。</p>
+            </div>
+            <div id="receiptTable" class="receipt-table"></div>
+          </section>
+
           <section class="report-section wide">
             <div class="section-head">
               <div>
@@ -2249,6 +2361,7 @@ h3 {
         <p>この月の記録はまだありません。</p>
       </div>
     </template>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script>
 const categories = [
   { id: "food", label: "食料品", color: "#1f8f8b" },
@@ -2353,6 +2466,7 @@ const state = {
   discounts: [],
   fixedCosts: loadJson("monthMateFixedCosts", []),
   recurringItems: loadJson(RECURRING_KEY, []),
+  receiptRows: [],
   monthlyBudgets: loadJson("monthMateMonthlyBudgets", {}),
   categoryBudgets: normalizeCategoryBudgets(loadJson("monthMateCategoryBudgets", {})),
   activeView: viewFromQuery(new URLSearchParams(location.search).get("view"))
@@ -2408,6 +2522,13 @@ const els = {
   fixedCostAmount: document.querySelector("#fixedCostAmount"),
   fixedCostCategory: document.querySelector("#fixedCostCategory"),
   fixedCostList: document.querySelector("#fixedCostList"),
+  receiptForm: document.querySelector("#receiptForm"),
+  receiptImage: document.querySelector("#receiptImage"),
+  receiptStatus: document.querySelector("#receiptStatus"),
+  receiptDate: document.querySelector("#receiptDate"),
+  receiptTotal: document.querySelector("#receiptTotal"),
+  receiptHint: document.querySelector("#receiptHint"),
+  receiptTable: document.querySelector("#receiptTable"),
   emptyTemplate: document.querySelector("#emptyTemplate"),
   monthlyChart: document.querySelector("#monthlyChart"),
 };
@@ -2420,6 +2541,8 @@ async function init() {
     .map((category) => `<option value="${category.id}">${category.label}</option>`)
     .join("");
   els.fixedCostCategory.innerHTML = els.category.innerHTML;
+  els.receiptDate.value = toDateInput(new Date());
+  renderReceiptRows([]);
 
   document.querySelector("#prevMonth").addEventListener("click", () => moveMonth(-1));
   document.querySelector("#nextMonth").addEventListener("click", () => moveMonth(1));
@@ -2432,6 +2555,7 @@ async function init() {
   els.form.addEventListener("submit", addExpense);
   els.incomeForm.addEventListener("submit", addIncome);
   els.fixedCostForm.addEventListener("submit", addFixedCost);
+  els.receiptForm.addEventListener("submit", readReceiptImage);
   els.closeModal.addEventListener("click", closeEntryModal);
   els.modal.addEventListener("click", (event) => {
     if (event.target === els.modal) closeEntryModal();
@@ -3031,6 +3155,165 @@ function deleteFixedCost(id) {
   saveFixedCosts();
   deleteFixedCostFromSupabase(id).catch(() => null);
   render();
+}
+
+async function readReceiptImage(event) {
+  event.preventDefault();
+  const file = els.receiptImage.files?.[0];
+  if (!file) {
+    setReceiptStatus("画像を選択してください。");
+    renderReceiptRows([]);
+    return;
+  }
+  if (!window.Tesseract?.recognize) {
+    setReceiptStatus("OCRライブラリを読み込めませんでした。通信状態を確認してください。");
+    renderReceiptRows([{ category: "food", title: "レシート合計", amount: Number(els.receiptTotal.value) || 0 }]);
+    return;
+  }
+  setReceiptStatus("読み取り中...");
+  try {
+    const result = await window.Tesseract.recognize(file, "jpn+eng", {
+      logger: (message) => {
+        if (message.status === "recognizing text") {
+          setReceiptStatus(`読み取り中 ${Math.round((message.progress || 0) * 100)}%`);
+        }
+      }
+    });
+    const parsed = parseReceiptText(result?.data?.text || "");
+    els.receiptDate.value = parsed.date || toDateInput(new Date());
+    els.receiptTotal.value = parsed.total || "";
+    renderReceiptRows(parsed.items);
+    setReceiptStatus(parsed.items.length ? `${parsed.items.length}件の候補` : "明細候補なし");
+    els.receiptHint.textContent = parsed.items.length
+      ? "読み取り結果を確認し、必要な行だけ追加してください。"
+      : "明細が取れない場合は、総額から1行だけ追加できます。";
+  } catch {
+    setReceiptStatus("読み取りに失敗しました。画像を変えて試してください。");
+  }
+}
+
+function setReceiptStatus(message) {
+  els.receiptStatus.textContent = message;
+}
+
+function parseReceiptText(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[，,]/g, "").trim())
+    .filter(Boolean);
+  const date = findReceiptDate(lines);
+  const total = findReceiptTotal(lines);
+  const items = [];
+  const skipPattern = /(合計|小計|税|釣|預|現計|現金|クレジット|カード|TEL|電話|領収|レシート|対象|登録|お買上|ポイント|税込|内税)/i;
+
+  lines.forEach((line) => {
+    if (skipPattern.test(line)) return;
+    const match = line.match(/^(.{2,40}?)\s*[¥￥]?\s*(\d{2,6})\s*円?$/);
+    if (!match) return;
+    const title = match[1].replace(/[^\p{L}\p{N}ぁ-んァ-ヶー一-龠々・\s]/gu, "").trim();
+    const amount = Number(match[2]);
+    if (!title || !amount || (total && amount === total)) return;
+    items.push({ category: guessReceiptCategory(title), title, amount });
+  });
+
+  if (!items.length && total) {
+    items.push({ category: "food", title: "レシート合計", amount: total });
+  }
+  return { date, total, items: items.slice(0, 20) };
+}
+
+function findReceiptDate(lines) {
+  for (const line of lines) {
+    const match = line.match(/(20\d{2}|令和\d{1,2})[年\/\-. ]+(\d{1,2})[月\/\-. ]+(\d{1,2})/);
+    if (!match) continue;
+    const year = match[1].startsWith("令和") ? 2018 + Number(match[1].replace("令和", "")) : Number(match[1]);
+    const month = String(Number(match[2])).padStart(2, "0");
+    const day = String(Number(match[3])).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+  return "";
+}
+
+function findReceiptTotal(lines) {
+  const totalLine = lines.find((line) => /(合計|総額|お会計|税込)/.test(line) && /\d/.test(line));
+  const source = totalLine || [...lines].reverse().find((line) => /[¥￥]?\s*\d{2,7}/.test(line)) || "";
+  const values = [...source.matchAll(/\d{2,7}/g)].map((match) => Number(match[0]));
+  return values.length ? Math.max(...values) : 0;
+}
+
+function guessReceiptCategory(title) {
+  if (/ノート|ペン|本|文具|教科|参考/.test(title)) return "study";
+  if (/薬|洗剤|紙|ティッシュ|トイレ|歯|シャンプ|日用/.test(title)) return "daily";
+  if (/電車|バス|交通|定期/.test(title)) return "transport";
+  if (/映画|ゲーム|カラオケ|遊/.test(title)) return "fun";
+  return "food";
+}
+
+function renderReceiptRows(rows = state.receiptRows) {
+  state.receiptRows = rows.map((row) => ({ ...row, added: Boolean(row.added) }));
+  els.receiptTable.innerHTML = "";
+  if (!state.receiptRows.length) {
+    els.receiptTable.innerHTML = '<div class="blank-row">読み取り候補はまだありません。</div>';
+    return;
+  }
+  const header = document.createElement("div");
+  header.className = "receipt-row header";
+  header.innerHTML = "<span>ジャンル</span><span>品名</span><span>値段</span><span>追加</span>";
+  els.receiptTable.append(header);
+  state.receiptRows.forEach((row, index) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = `receipt-row ${row.added ? "is-added" : ""}`;
+    wrapper.innerHTML = `
+      <select data-field="category" aria-label="ジャンル">${categories.map((category) => `<option value="${category.id}" ${category.id === row.category ? "selected" : ""}>${category.label}</option>`).join("")}</select>
+      <input data-field="title" type="text" maxlength="40" value="${escapeHtml(row.title || "")}" aria-label="品名">
+      <input data-field="amount" type="number" inputmode="numeric" min="0" step="1" value="${Number(row.amount || 0)}" aria-label="値段">
+      <button class="primary-button" type="button" ${row.added ? "disabled" : ""}>${row.added ? "追加済み" : "品物追加"}</button>
+    `;
+    wrapper.querySelectorAll("[data-field]").forEach((field) => {
+      field.addEventListener("input", () => updateReceiptRow(index, wrapper));
+      field.addEventListener("change", () => updateReceiptRow(index, wrapper));
+    });
+    wrapper.querySelector("button").addEventListener("click", () => addReceiptRow(index, wrapper));
+    els.receiptTable.append(wrapper);
+  });
+}
+
+function updateReceiptRow(index, wrapper) {
+  const next = receiptRowFromElement(wrapper);
+  state.receiptRows[index] = { ...state.receiptRows[index], ...next };
+}
+
+function receiptRowFromElement(wrapper) {
+  return {
+    category: wrapper.querySelector('[data-field="category"]').value,
+    title: wrapper.querySelector('[data-field="title"]').value.trim(),
+    amount: Math.max(0, Number(wrapper.querySelector('[data-field="amount"]').value) || 0)
+  };
+}
+
+function addReceiptRow(index, wrapper) {
+  const row = receiptRowFromElement(wrapper);
+  const date = els.receiptDate.value || toDateInput(new Date());
+  if (!row.title || row.amount <= 0) {
+    setReceiptStatus("品名と値段を確認してください。");
+    return;
+  }
+  const item = {
+    id: crypto.randomUUID(),
+    date,
+    category: row.category,
+    title: row.title,
+    amount: row.amount
+  };
+  state.expenses.push(item);
+  state.viewDate = dateFromInput(date);
+  state.selectedDate = date;
+  state.receiptRows[index] = { ...row, added: true };
+  saveExpenses();
+  syncHouseholdRecord(item, "expense").catch(() => null);
+  render();
+  renderReceiptRows(state.receiptRows);
+  setReceiptStatus(`${row.title}を追加しました。`);
 }
 
 function deleteExpense(id) {

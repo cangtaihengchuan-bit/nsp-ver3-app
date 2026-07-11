@@ -1168,6 +1168,7 @@
           sourceDiscountId: ""
         };
         if (!item.title) return;
+        maybeUpdateRecurringPurchaseFromShopping(item.title);
         addShoppingItem(item);
         els.form.reset();
       }
@@ -1234,6 +1235,17 @@
         saveRecurringItems();
         syncRecurringItem(item).catch(() => null);
         renderRecurring();
+      }
+
+      function maybeUpdateRecurringPurchaseFromShopping(title) {
+        const normalizedTitle = normalizeItemName(title);
+        const matched = state.recurringItems.find((item) => {
+          return item.active !== false && normalizeItemName(item.title) === normalizedTitle;
+        });
+        if (!matched) return;
+        if (confirm(`${matched.title}は繰り返し購入品に登録されています。最終購入日を今日に更新しますか？`)) {
+          markRecurringPurchased(matched.id);
+        }
       }
 
       function deleteRecurringItem(id) {
@@ -1457,6 +1469,13 @@
         const date = parseDate(value);
         if (!date) return "未設定";
         return `${date.getMonth() + 1}/${date.getDate()}`;
+      }
+
+      function normalizeItemName(value) {
+        return String(value || "")
+          .normalize("NFKC")
+          .replace(/\s+/g, "")
+          .toLowerCase();
       }
     </script>
   </body>
