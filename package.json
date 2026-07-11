@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "build:ocr": "node scripts/build-paddle-ocr-bundle.mjs",
+    "benchmark:ocr": "node scripts/benchmark-receipt-ocr.mjs"
+  },
+  "devDependencies": {
+    "@paddle-js-models/ocr": "^4.1.1",
+    "esbuild": "^0.25.5",
+    "playwright-core": "^1.61.1",
+    "tesseract.js": "^5.1.1"
+  }
+}

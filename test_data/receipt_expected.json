@@ -1,0 +1,50 @@
+[
+  {
+    "file": "test.jpg",
+    "date": "2026-07-10",
+    "total": 2056,
+    "itemAmounts": [89, 89, 99, 248, 299, 556, 219, 99, 179, 179]
+  },
+  {
+    "file": "test2_1.jpg",
+    "date": "2026-07-01",
+    "total": 1708,
+    "itemAmounts": [198, 198, 198, 336, 158, 138, 128, 198, 98]
+  },
+  {
+    "file": "test2_2.jpg",
+    "date": "2026-07-05",
+    "total": 90,
+    "itemAmounts": [90]
+  },
+  {
+    "file": "test2_3.jpg",
+    "date": "2026-07-04",
+    "total": 822,
+    "itemAmounts": [198, 278, 198, 88]
+  },
+  {
+    "file": "test2_4.jpg",
+    "date": "2026-07-03",
+    "total": 2217,
+    "itemAmounts": [195, 226, 226, 127, 130, 198, 181, 194, 194, 138, 129, 279]
+  },
+  {
+    "file": "test3_1.jpg",
+    "date": "2026-07-11",
+    "total": 521,
+    "itemAmounts": [118, 210, 152, 3]
+  },
+  {
+    "file": "test3_2.jpg",
+    "date": "2026-07-11",
+    "total": 627,
+    "itemAmounts": [398, 213]
+  },
+  {
+    "file": "test3_3.jpg",
+    "date": "2026-07-11",
+    "total": 516,
+    "itemAmounts": [139, 377]
+  }
+]

@@ -1,0 +1,5 @@
+node_modules/
+reports/ocr-benchmark-*.json
+reports/ocr-benchmark-*.md
+test_images/
+*.log
