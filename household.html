@@ -672,7 +672,7 @@ h3 {
 
 .receipt-row {
   display: grid;
-  grid-template-columns: minmax(96px, 0.7fr) minmax(130px, 1fr) minmax(90px, 0.6fr) auto;
+  grid-template-columns: minmax(96px, 0.7fr) minmax(130px, 1fr) minmax(90px, 0.6fr);
   gap: 8px;
   align-items: center;
 }
@@ -692,6 +692,16 @@ h3 {
 
 .receipt-row.is-added {
   opacity: 0.58;
+}
+
+.receipt-actions {
+  display: grid;
+  justify-items: end;
+  padding-top: 4px;
+}
+
+.receipt-actions .primary-button {
+  min-width: 160px;
 }
 
 .budget-alert {
@@ -3258,7 +3268,7 @@ function renderReceiptRows(rows = state.receiptRows) {
   }
   const header = document.createElement("div");
   header.className = "receipt-row header";
-  header.innerHTML = "<span>ジャンル</span><span>品名</span><span>値段</span><span>追加</span>";
+  header.innerHTML = "<span>ジャンル</span><span>品名</span><span>値段</span>";
   els.receiptTable.append(header);
   state.receiptRows.forEach((row, index) => {
     const wrapper = document.createElement("div");
@@ -3267,15 +3277,19 @@ function renderReceiptRows(rows = state.receiptRows) {
       <select data-field="category" aria-label="ジャンル">${categories.map((category) => `<option value="${category.id}" ${category.id === row.category ? "selected" : ""}>${category.label}</option>`).join("")}</select>
       <input data-field="title" type="text" maxlength="40" value="${escapeHtml(row.title || "")}" aria-label="品名">
       <input data-field="amount" type="number" inputmode="numeric" min="0" step="1" value="${Number(row.amount || 0)}" aria-label="値段">
-      <button class="primary-button" type="button" ${row.added ? "disabled" : ""}>${row.added ? "追加済み" : "品物追加"}</button>
     `;
     wrapper.querySelectorAll("[data-field]").forEach((field) => {
       field.addEventListener("input", () => updateReceiptRow(index, wrapper));
       field.addEventListener("change", () => updateReceiptRow(index, wrapper));
     });
-    wrapper.querySelector("button").addEventListener("click", () => addReceiptRow(index, wrapper));
     els.receiptTable.append(wrapper);
   });
+  const actions = document.createElement("div");
+  actions.className = "receipt-actions";
+  actions.innerHTML = `<button class="primary-button" type="button">${state.receiptRows.some((row) => !row.added) ? "品物追加" : "追加済み"}</button>`;
+  actions.querySelector("button").disabled = !state.receiptRows.some((row) => !row.added);
+  actions.querySelector("button").addEventListener("click", addReceiptRows);
+  els.receiptTable.append(actions);
 }
 
 function updateReceiptRow(index, wrapper) {
@@ -3291,29 +3305,35 @@ function receiptRowFromElement(wrapper) {
   };
 }
 
-function addReceiptRow(index, wrapper) {
-  const row = receiptRowFromElement(wrapper);
+function addReceiptRows() {
   const date = els.receiptDate.value || toDateInput(new Date());
-  if (!row.title || row.amount <= 0) {
-    setReceiptStatus("品名と値段を確認してください。");
+  const rows = state.receiptRows
+    .map((row) => ({ ...row, amount: Math.max(0, Number(row.amount) || 0) }))
+    .filter((row) => !row.added && row.title && row.amount > 0);
+  if (!rows.length) {
+    setReceiptStatus("追加できる品名と値段を確認してください。");
     return;
   }
-  const item = {
+  const items = rows.map((row) => ({
     id: crypto.randomUUID(),
     date,
     category: row.category,
     title: row.title,
     amount: row.amount
-  };
-  state.expenses.push(item);
+  }));
+  state.expenses.push(...items);
   state.viewDate = dateFromInput(date);
   state.selectedDate = date;
-  state.receiptRows[index] = { ...row, added: true };
+  const addedKeys = new Set(rows.map((row) => `${row.category}|${row.title}|${row.amount}`));
+  state.receiptRows = state.receiptRows.map((row) => {
+    const key = `${row.category}|${row.title}|${Math.max(0, Number(row.amount) || 0)}`;
+    return addedKeys.has(key) ? { ...row, added: true } : row;
+  });
   saveExpenses();
-  syncHouseholdRecord(item, "expense").catch(() => null);
+  items.forEach((item) => syncHouseholdRecord(item, "expense").catch(() => null));
   render();
   renderReceiptRows(state.receiptRows);
-  setReceiptStatus(`${row.title}を追加しました。`);
+  setReceiptStatus(`${items.length}件を追加しました。`);
 }
 
 function deleteExpense(id) {
