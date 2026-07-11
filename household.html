@@ -671,13 +671,23 @@ h3 {
 }
 
 .receipt-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 34px minmax(96px, 0.7fr) minmax(130px, 1fr) minmax(90px, 0.6fr) auto;
+  grid-template-columns: minmax(96px, 0.7fr) minmax(150px, 1fr) minmax(90px, 0.6fr);
   gap: 8px;
   align-items: center;
+  padding-right: 34px;
+}
+
+.receipt-row:not(.header) {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 38px 8px 8px;
+  background: color-mix(in srgb, var(--paper) 72%, #fffdf7);
 }
 
 .receipt-row.header {
+  padding-right: 0;
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 900;
@@ -695,8 +705,9 @@ h3 {
 }
 
 .receipt-check {
-  display: grid;
+  display: inline-grid;
   place-items: center;
+  flex: 0 0 24px;
 }
 
 .receipt-check input {
@@ -705,9 +716,38 @@ h3 {
   accent-color: var(--mint);
 }
 
-.receipt-actions {
+.receipt-title-field {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.receipt-title-field input {
+  min-width: 0;
+}
+
+.receipt-row .delete-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border-color: rgba(200, 75, 53, 0.35);
+  background: rgba(200, 75, 53, 0.1);
+}
+
+.receipt-row .delete-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.receipt-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
   justify-content: flex-end;
+  justify-items: end;
   gap: 8px;
   padding-top: 4px;
 }
@@ -715,6 +755,32 @@ h3 {
 .receipt-actions .primary-button,
 .receipt-actions .ghost-button {
   min-width: 160px;
+}
+
+.receipt-merge-bar {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--paper) 96%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.receipt-merge-bar[hidden] {
+  display: none;
+}
+
+.receipt-merge-bar span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
 .budget-alert {
@@ -1417,6 +1483,7 @@ h3 {
   .receipt-meta,
   .receipt-row {
     grid-template-columns: 1fr;
+    padding-right: 34px;
   }
 
   .receipt-row.header {
@@ -1426,11 +1493,20 @@ h3 {
   .receipt-actions {
     display: grid;
     grid-template-columns: 1fr;
+    grid-auto-flow: row;
   }
 
   .receipt-actions .primary-button,
   .receipt-actions .ghost-button {
     width: 100%;
+  }
+
+  .receipt-merge-bar {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    max-width: none;
+    justify-content: space-between;
   }
 
   .expense-item {
@@ -1460,7 +1536,8 @@ h3 {
   .receipt-row .delete-button {
     grid-column: auto;
     grid-row: auto;
-    width: 100%;
+    width: 26px;
+    min-height: 26px;
   }
 
   .entry-modal {
@@ -2330,6 +2407,10 @@ h3 {
           </div>
           <div id="receiptTable" class="receipt-table"></div>
         </section>
+        <div id="receiptMergeBar" class="receipt-merge-bar" hidden>
+          <span id="receiptMergeCount">0件選択中</span>
+          <button id="receiptMergeBtn" class="primary-button" type="button">まとめる</button>
+        </div>
       </section>
 
     </div>
@@ -2581,6 +2662,9 @@ const els = {
   receiptTotal: document.querySelector("#receiptTotal"),
   receiptHint: document.querySelector("#receiptHint"),
   receiptTable: document.querySelector("#receiptTable"),
+  receiptMergeBar: document.querySelector("#receiptMergeBar"),
+  receiptMergeCount: document.querySelector("#receiptMergeCount"),
+  receiptMergeBtn: document.querySelector("#receiptMergeBtn"),
   emptyTemplate: document.querySelector("#emptyTemplate"),
   monthlyChart: document.querySelector("#monthlyChart"),
 };
@@ -2614,6 +2698,7 @@ async function init() {
   els.receiptCamera.addEventListener("change", () => {
     if (els.receiptCamera.files?.length) els.receiptImage.value = "";
   });
+  els.receiptMergeBtn.addEventListener("click", mergeSelectedReceiptRows);
   els.closeModal.addEventListener("click", closeEntryModal);
   els.modal.addEventListener("click", (event) => {
     if (event.target === els.modal) closeEntryModal();
@@ -3225,7 +3310,7 @@ async function readReceiptImage(event) {
   }
   if (!window.Tesseract?.recognize) {
     setReceiptStatus("OCRライブラリを読み込めませんでした。通信状態を確認してください。");
-    renderReceiptRows([{ category: "unknown", title: "レシート合計", amount: Number(els.receiptTotal.value) || 0 }]);
+    renderReceiptRows([createReceiptRow({ category: "unknown", title: "レシート合計", amount: Number(els.receiptTotal.value) || 0 })]);
     return;
   }
   setReceiptStatus("読み取り中...");
@@ -3271,11 +3356,11 @@ function parseReceiptText(text) {
     const title = match[1].replace(/[^\p{L}\p{N}ぁ-んァ-ヶー一-龠々・\s]/gu, "").trim();
     const amount = Number(match[2]);
     if (!title || !amount || (total && amount === total)) return;
-    items.push({ category: "unknown", title, amount, selected: false });
+    items.push(createReceiptRow({ category: "unknown", title, amount }));
   });
 
   if (!items.length && total) {
-    items.push({ category: "unknown", title: "レシート合計", amount: total, selected: false });
+    items.push(createReceiptRow({ category: "unknown", title: "レシート合計", amount: total }));
   }
   return { date, total, items: items.slice(0, 20) };
 }
@@ -3302,6 +3387,7 @@ function findReceiptTotal(lines) {
 function renderReceiptRows(rows = state.receiptRows) {
   state.receiptRows = rows.map((row) => ({
     ...row,
+    id: row.id || crypto.randomUUID(),
     category: row.category || "unknown",
     selected: Boolean(row.selected),
     added: Boolean(row.added)
@@ -3309,25 +3395,30 @@ function renderReceiptRows(rows = state.receiptRows) {
   els.receiptTable.innerHTML = "";
   if (!state.receiptRows.length) {
     els.receiptTable.innerHTML = '<div class="blank-row">読み取り候補はまだありません。</div>';
+    renderReceiptActions();
+    updateReceiptMergeBar();
     return;
   }
   const header = document.createElement("div");
   header.className = "receipt-row header";
-  header.innerHTML = "<span>選択</span><span>ジャンル</span><span>品名</span><span>値段</span><span>削除</span>";
+  header.innerHTML = "<span>ジャンル</span><span>品名</span><span>値段</span>";
   els.receiptTable.append(header);
   state.receiptRows.forEach((row, index) => {
     const wrapper = document.createElement("div");
     wrapper.className = `receipt-row ${row.added ? "is-added" : ""}`;
+    wrapper.dataset.rowId = row.id;
     wrapper.innerHTML = `
-      <label class="receipt-check">
-        <input data-field="selected" type="checkbox" ${row.selected ? "checked" : ""} aria-label="${escapeHtml(row.title || "候補")}を選択">
-      </label>
       <select data-field="category" aria-label="ジャンル">${categories.map((category) => `<option value="${category.id}" ${category.id === row.category ? "selected" : ""}>${category.label}</option>`).join("")}</select>
-      <input data-field="title" type="text" maxlength="40" value="${escapeHtml(row.title || "")}" aria-label="品名">
+      <label class="receipt-title-field">
+        <span class="receipt-check">
+          <input data-field="selected" type="checkbox" ${row.selected ? "checked" : ""} aria-label="${escapeHtml(row.title || "候補")}を選択">
+        </span>
+        <input data-field="title" type="text" maxlength="40" value="${escapeHtml(row.title || "")}" aria-label="品名">
+      </label>
       <input data-field="amount" type="number" inputmode="numeric" min="0" step="1" value="${Number(row.amount || 0)}" aria-label="値段">
       <button class="delete-button" type="button" aria-label="${escapeHtml(row.title || "候補")}を削除">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7l1-3h4l1 3"/>
+          <path d="M6 6l12 12M18 6 6 18"/>
         </svg>
       </button>
     `;
@@ -3338,22 +3429,27 @@ function renderReceiptRows(rows = state.receiptRows) {
     wrapper.querySelector("button").addEventListener("click", () => deleteReceiptRow(index));
     els.receiptTable.append(wrapper);
   });
+  renderReceiptActions();
+  updateReceiptMergeBar();
+}
+
+function renderReceiptActions() {
   const actions = document.createElement("div");
   actions.className = "receipt-actions";
   actions.innerHTML = `
-    <button class="ghost-button" type="button" data-action="merge">選択をまとめる</button>
-    <button class="primary-button" type="button" data-action="add">${state.receiptRows.some((row) => !row.added) ? "品物追加" : "追加済み"}</button>
+    <button class="ghost-button" type="button" data-action="add-candidate">読み取れなかった品物を候補に追加</button>
+    <button class="primary-button" type="button" data-action="add-calendar">${state.receiptRows.some((row) => !row.added) ? "確認した候補をカレンダーへ登録" : "カレンダーへ登録済み"}</button>
   `;
-  actions.querySelector('[data-action="merge"]').disabled = state.receiptRows.filter((row) => row.selected && !row.added).length < 2;
-  actions.querySelector('[data-action="add"]').disabled = !state.receiptRows.some((row) => !row.added);
-  actions.querySelector('[data-action="merge"]').addEventListener("click", mergeSelectedReceiptRows);
-  actions.querySelector('[data-action="add"]').addEventListener("click", addReceiptRows);
+  actions.querySelector('[data-action="add-calendar"]').disabled = !state.receiptRows.some((row) => !row.added);
+  actions.querySelector('[data-action="add-candidate"]').addEventListener("click", addReceiptCandidateRow);
+  actions.querySelector('[data-action="add-calendar"]').addEventListener("click", addReceiptRows);
   els.receiptTable.append(actions);
 }
 
 function updateReceiptRow(index, wrapper) {
   const next = receiptRowFromElement(wrapper);
   state.receiptRows[index] = { ...state.receiptRows[index], ...next };
+  updateReceiptMergeBar();
 }
 
 function receiptRowFromElement(wrapper) {
@@ -3365,10 +3461,40 @@ function receiptRowFromElement(wrapper) {
   };
 }
 
+function createReceiptRow(row) {
+  return {
+    id: crypto.randomUUID(),
+    category: row.category || "unknown",
+    title: row.title || "",
+    amount: Math.max(0, Number(row.amount) || 0),
+    selected: Boolean(row.selected),
+    added: Boolean(row.added)
+  };
+}
+
+function updateReceiptMergeBar() {
+  const selectedCount = state.receiptRows.filter((row) => row.selected && !row.added).length;
+  els.receiptMergeBar.hidden = selectedCount < 2;
+  els.receiptMergeCount.textContent = `${selectedCount}件選択中`;
+}
+
 function deleteReceiptRow(index) {
+  const row = state.receiptRows[index];
+  if (!confirm(`${row?.title || "この候補"}を削除しますか？`)) return;
   state.receiptRows = state.receiptRows.filter((_, rowIndex) => rowIndex !== index);
   renderReceiptRows(state.receiptRows);
   setReceiptStatus("候補を削除しました。");
+}
+
+function addReceiptCandidateRow() {
+  state.receiptRows = [
+    ...state.receiptRows,
+    createReceiptRow({ category: "unknown", title: "", amount: 0 })
+  ];
+  renderReceiptRows(state.receiptRows);
+  setReceiptStatus("読み取れなかった品物を候補に追加しました。");
+  const candidateRows = els.receiptTable.querySelectorAll(".receipt-row:not(.header)");
+  candidateRows[candidateRows.length - 1]?.querySelector("[data-field='title']")?.focus();
 }
 
 function mergeSelectedReceiptRows() {
@@ -3381,6 +3507,7 @@ function mergeSelectedReceiptRows() {
   const title = prompt("まとめた品名を入力してください。例: お菓子", defaultTitle);
   if (!title?.trim()) return;
   const merged = {
+    id: crypto.randomUUID(),
     category: "unknown",
     title: title.trim(),
     amount: selectedRows.reduce((total, row) => total + (Number(row.amount) || 0), 0),
@@ -3414,10 +3541,9 @@ function addReceiptRows() {
   state.expenses.push(...items);
   state.viewDate = dateFromInput(date);
   state.selectedDate = date;
-  const addedKeys = new Set(rows.map((row) => `${row.category}|${row.title}|${row.amount}`));
+  const addedIds = new Set(rows.map((row) => row.id));
   state.receiptRows = state.receiptRows.map((row) => {
-    const key = `${row.category}|${row.title}|${Math.max(0, Number(row.amount) || 0)}`;
-    return addedKeys.has(key) ? { ...row, added: true } : row;
+    return addedIds.has(row.id) ? { ...row, selected: false, added: true } : row;
   });
   saveExpenses();
   items.forEach((item) => syncHouseholdRecord(item, "expense").catch(() => null));
@@ -3484,6 +3610,11 @@ function setView(viewId, updateHash = true) {
   els.views.forEach((view) => {
     view.classList.toggle("is-active", view.id === viewId);
   });
+  if (viewId !== "receiptView") {
+    els.receiptMergeBar.hidden = true;
+  } else {
+    updateReceiptMergeBar();
+  }
   if (updateHash) {
     const viewParam = viewId === "reportView" ? "report" : viewId === "receiptView" ? "receipt" : "";
     const url = viewParam ? `${location.pathname}?view=${viewParam}` : location.pathname;
