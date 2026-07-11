@@ -3342,19 +3342,19 @@ function setReceiptStatus(message) {
 function parseReceiptText(text) {
   const lines = String(text || "")
     .split(/\r?\n/)
-    .map((line) => line.replace(/[，,]/g, "").trim())
+    .map(normalizeReceiptOcrLine)
     .filter(Boolean);
   const date = findReceiptDate(lines);
   const total = findReceiptTotal(lines);
   const items = [];
-  const skipPattern = /(合計|小計|税|釣|預|現計|現金|クレジット|カード|TEL|電話|領収|レシート|対象|登録|お買上|ポイント|税込|内税)/i;
+  const skipPattern = /(合計|含計|小計|税|釣|預|現計|現金|支払|クレジット|カード|TEL|電話|領収|レシート|対象|登録|お買上|ポイント|税込|内税|WAON|PayPay|ID|No\.?|番号)/i;
 
   lines.forEach((line) => {
     if (skipPattern.test(line)) return;
-    const match = line.match(/^(.{2,40}?)\s*[¥￥]?\s*(\d{2,6})\s*円?$/);
+    const match = line.match(/^(.{2,48}?)\s*[¥￥\\#*]?\s*(\d[\d,]{1,6})\s*(?:円|[※%軽A>)）]*)?$/);
     if (!match) return;
-    const title = match[1].replace(/[^\p{L}\p{N}ぁ-んァ-ヶー一-龠々・\s]/gu, "").trim();
-    const amount = Number(match[2]);
+    const title = match[1].replace(/[^\p{L}\p{N}ぁ-んァ-ヶー一-龠々・ー\s]/gu, "").replace(/\s+/g, " ").trim();
+    const amount = Number(match[2].replace(/,/g, ""));
     if (!title || !amount || (total && amount === total)) return;
     items.push(createReceiptRow({ category: "unknown", title, amount }));
   });
@@ -3363,6 +3363,22 @@ function parseReceiptText(text) {
     items.push(createReceiptRow({ category: "unknown", title: "レシート合計", amount: total }));
   }
   return { date, total, items: items.slice(0, 20) };
+}
+
+function normalizeReceiptOcrLine(line) {
+  const numberMap = {
+    "⓪": "0", "①": "1", "②": "2", "③": "3", "④": "4", "⑤": "5", "⑥": "6", "⑦": "7", "⑧": "8", "⑨": "9",
+    "⑩": "10", "⑪": "11", "⑫": "12", "⑬": "13", "⑭": "14", "⑮": "15", "⑯": "16", "⑰": "17", "⑱": "18", "⑲": "19", "⑳": "20",
+    "０": "0", "１": "1", "２": "2", "３": "3", "４": "4", "５": "5", "６": "6", "７": "7", "８": "8", "９": "9"
+  };
+  return String(line || "")
+    .replace(/[⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳０-９]/g, (char) => numberMap[char] || char)
+    .replace(/[，,]\s*/g, ",")
+    .replace(/([¥￥\\#*])\s+(\d)/g, "$1$2")
+    .replace(/(\d)\s*,\s*(\d)/g, "$1,$2")
+    .replace(/(\d)\s+(\d{3})(?!\d)/g, "$1,$2")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function findReceiptDate(lines) {
@@ -3378,9 +3394,14 @@ function findReceiptDate(lines) {
 }
 
 function findReceiptTotal(lines) {
-  const totalLine = lines.find((line) => /(合計|総額|お会計|税込)/.test(line) && /\d/.test(line));
-  const source = totalLine || [...lines].reverse().find((line) => /[¥￥]?\s*\d{2,7}/.test(line)) || "";
-  const values = [...source.matchAll(/\d{2,7}/g)].map((match) => Number(match[0]));
+  const totalLine = [...lines].reverse().find((line) => {
+    const compact = line.replace(/\s/g, "");
+    return /(合計|含計|合言|呑言|総額|お会計|税込)/.test(compact) && /[¥￥\\#]?\d/.test(line);
+  });
+  const source = totalLine || [...lines].reverse().find((line) => /[¥￥\\#]\s*\d[\d,]{1,7}/.test(line)) || "";
+  const values = [...source.matchAll(/[¥￥\\#]?\s*(\d[\d,]{1,7})/g)]
+    .map((match) => Number(match[1].replace(/,/g, "")))
+    .filter((value) => value >= 10 && value < 100000);
   return values.length ? Math.max(...values) : 0;
 }
 
